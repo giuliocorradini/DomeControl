@@ -1,4 +1,6 @@
-#include "main.h"
+#include "dome.h"
+#include "mbed.h"
+#include "i2c.h"
 
 int EncoderPosition = 0;    //posizione attuale cupola in impulsi encoder assoluti 
 int QuotaParcheggio = 0;    //quota cui parcheggiare la cupola in impulsi encoder
