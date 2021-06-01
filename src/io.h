@@ -1,3 +1,4 @@
+#include "mbed.h"
 
 void IoInit(void);
 void IoMain(void);
