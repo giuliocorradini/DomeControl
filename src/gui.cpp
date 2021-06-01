@@ -1,4 +1,9 @@
-#include "main.h"
+#include "gui.h"
+#include "mbed.h"
+#include "lcd.h"
+#include "io.h"
+#include "dome.h"
+#include "touch.h"
 
 //ingresso analogico carico motore
 AnalogIn LoadIn(A2);
