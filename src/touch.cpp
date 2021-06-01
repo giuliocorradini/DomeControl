@@ -1,4 +1,6 @@
-#include "main.h"
+#include "touch.h"
+#include "mbed.h"
+#include "lcd.h"
 
 //ingressi analogici lettura
 AnalogIn analog_row(A0);
