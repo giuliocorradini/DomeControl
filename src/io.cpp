@@ -4,9 +4,9 @@
 #include "EthernetInterface.h"
 #include "Socket/UDPSocket.h"
 
-Serial Pc(USBTX,USBRX);
+BufferedSerial Pc(USBTX,USBRX);
 //RawSerial server(PA_9,PA_10);
-RawSerial encoder(PA_11,PA_12);
+UnbufferedSerial encoder(PA_11,PA_12);
 
 int EncRxEndFlag = 0;
 

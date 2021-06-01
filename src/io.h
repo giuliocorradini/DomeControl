@@ -6,4 +6,4 @@ void IoMain(void);
 #define Manuale 0
 #define Automatico 1
 
-extern Serial Pc;
+extern BufferedSerial Pc;
