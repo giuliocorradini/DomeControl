@@ -72,7 +72,7 @@ void IoInit(void){
     //inizializza ethernet
     spi.format(8,0); // 8bit, mode 0
     spi.frequency(15000000); // 7MHz
-    ThisThread::sleep_for(1); // 1 second for stable state
+    ThisThread::sleep_for(1s); // 1 second for stable state
     printf("\r\ninitializing Ethernet\r\n");
     returnCode = eth.init(MAC_Addr,MyIP_Addr,IP_Subnet,IP_Gateway);
  

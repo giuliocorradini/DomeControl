@@ -24,7 +24,7 @@ int main() {
     TouchInit();    //touchscreen
     DomeInit();     //cupola
 
-    tick.attach(&timeout,0.01);
+    tick.attach(&timeout, 10ms);
    
     while(1) {
         
