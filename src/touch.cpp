@@ -2,6 +2,7 @@
 #include "mbed.h"
 #include "lcd.h"
 #include "eerom.h"
+#include "i2c.h"
 
 //ingressi analogici lettura
 AnalogIn analog_row(A0);
@@ -194,7 +195,7 @@ void TouchSetngsSave(void){
     i2cmembuff[8] = temp;
     i2c.write(I2cMemAddr, i2cmembuff, 9, false);
 
-    wait(0.01);                     //la eerom impiega almeno 5msec a scriversi
+    ThisThread::sleep_for(0.01);                     //la eerom impiega almeno 5msec a scriversi
     
     i2cmembuff[0] = 8;              //la eerom vuole come primo byte la locazione cui scrivere
     temp = Settings.TouchXoffset;

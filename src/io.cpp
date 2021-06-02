@@ -1,8 +1,8 @@
 #include "io.h"
 #include <string>
 #include "mbed.h"
-#include "EthernetInterface.h"
-#include "Socket/UDPSocket.h"
+#include "dome.h"
+#include "WIZnetInterface.h"
 
 BufferedSerial Pc(USBTX,USBRX);
 //RawSerial server(PA_9,PA_10);
@@ -29,9 +29,10 @@ const char * IP_Subnet  = "255.255.255.0";
 const char * IP_Gateway = "192.168.0.1";
 unsigned char MAC_Addr[6] = {0x00,0x08,0xDC,0x12,0x34,0x56};
 
-SPI spi(PB_5, PB_4, PB_3); // mosi, miso, sclk
-EthernetInterface eth(&spi, PB_6, PC_4);    // reset pin is dummy, don't affect any pin of WIZ550io
+//SPI spi(PB_5, PB_4, PB_3); // mosi, miso, sclk
+WIZnetInterface eth(PB_5, PB_4, PB_3, PB_6, PC_4);    // reset pin is dummy, don't affect any pin of WIZ550io
 
+//UDPSocket is imported with mbed.h
 UDPSocket RxUdp;
 Endpoint RxEndpoint;
 UDPSocket TxUdp;
@@ -71,7 +72,7 @@ void IoInit(void){
     //inizializza ethernet
     spi.format(8,0); // 8bit, mode 0
     spi.frequency(15000000); // 7MHz
-    wait(1); // 1 second for stable state
+    ThisThread::sleep_for(1); // 1 second for stable state
     printf("\r\ninitializing Ethernet\r\n");
     returnCode = eth.init(MAC_Addr,MyIP_Addr,IP_Subnet,IP_Gateway);
  
