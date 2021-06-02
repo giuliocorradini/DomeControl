@@ -1,0 +1,3 @@
+[submodule "lib/WIZnetInterface"]
+	path = lib/WIZnetInterface
+	url = https://github.com/WIZnet-MbedEthernet/WIZnetInterface
