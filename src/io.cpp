@@ -37,9 +37,9 @@ WIZnetInterface eth(PB_5, PB_4, PB_3, PB_6, PC_4);    // reset pin is dummy, don
 
 //UDPSocket is imported with mbed.h
 UDPSocket RxUdp;
-Endpoint RxEndpoint;
+SocketAddress RxEndpoint;
 UDPSocket TxUdp;
-Endpoint TxEndpoint;
+SocketAddress TxEndpoint;
 //per porta web
 TCPSocket WebSrv;
 TCPSocket *WebClient;
@@ -90,19 +90,26 @@ void IoInit(void){
     printf(" - connecting returned %d \r\n", returnCode);
     printf("IP Address is %s\r\n", eth.get_ip_address());
 
-    if (RxUdp.init() == 0)
-        printf("init socket udp in ricezione OK\r\n");
-    if (RxUdp.bind(1032) == 0)
+    /* Configurazione endpoint UDP */
+    RxUdp.open(&eth);   //Apro socket UDP su interfaccia Ethernet
+    //if (RxUdp.init() == 0)
+    //    printf("init socket udp in ricezione OK\r\n");
+    if (RxUdp.bind(1032) == NSAPI_ERROR_OK)
         printf("bind RX socket 1032 udp OK\r\n");
-    RxEndpoint.set_address(MyIP_Addr, 1032);
+    else
+        exit(-1);
+    RxEndpoint.set_ip_address(MyIP_Addr);
+    RxEndpoint.set_port(1032);
     RxUdp.set_blocking(false);
 
-    if (TxUdp.init() == 0)
-        printf("init socket udp in trasmissione OK\r\n");
-    if (TxUdp.bind() == 0)
+    //if (TxUdp.init() == 0)
+    //    printf("init socket udp in trasmissione OK\r\n");
+    TxUdp.open(&eth);
+    if (TxUdp.bind(1031) == 0)
         printf("bind TX socket udp 1031 OK\r\n");
     //TxEndpoint.set_address("192.168.0.20", 1031);
-    TxEndpoint.set_address("192.168.0.102", 1050);
+    TxEndpoint.set_ip_address("192.168.0.102");
+    TxEndpoint.set_port(1050);
     TxUdp.set_blocking(false);
 
     //configura ed apre la porta web
@@ -186,12 +193,12 @@ void IoMain(void){
         SrvBufPtr += sprintf(SrvBufPtr,"RP%d ",EncoderPosition);     //NB i due spazi dietro il %d verranno 'divorati' dal numero a 2 e tre cifre !
         *SrvBufPtr++ = ' ';
         SrvBufPtr += sprintf(SrvBufPtr,"DP%d\n",DomePosition);
-        TxUdp.sendTo(TxEndpoint,SrvRxBuffer,strlen(SrvRxBuffer));
+        TxUdp.sendto(TxEndpoint, SrvRxBuffer, strlen(SrvRxBuffer));
         CycleCounter = 0;
     };
     
     //legge dati dal socket udp di ricezione
-    temp = RxUdp.receiveFrom(RxEndpoint, SrvRxBuffer, SrvRxBufSize);
+    temp = RxUdp.recvfrom(&RxEndpoint, SrvRxBuffer, SrvRxBufSize);
     if (temp>0){
         SrvRxBuffer[temp] = '\n';
         SrvRxBuffer[temp+1] = 0;
