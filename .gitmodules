@@ -1,0 +1,3 @@
+[submodule "lib/mbed-mqtt"]
+	path = lib/mbed-mqtt
+	url = https://github.com/ARMmbed/mbed-mqtt.git
