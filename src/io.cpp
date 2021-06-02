@@ -69,12 +69,12 @@ void IoInit(void){
     server.format(8,server.None,1);
     server.attach(&srvrx,server.RxIrq);*/
 
-    Pc.baud(115200);
-    Pc.format(8,Pc.None,1);
+    Pc.set_baud(115200);
+    Pc.set_format(8, SerialBase::None, 1);
     
     //inizializza ethernet
-    spi.format(8,0); // 8bit, mode 0
-    spi.frequency(15000000); // 7MHz
+    //spi.format(8,0); // 8bit, mode 0  handled by WIZnet library internally
+    //spi.frequency(15000000); // 7MHz
     ThisThread::sleep_for(1s); // 1 second for stable state
     printf("\r\ninitializing Ethernet\r\n");
     returnCode = eth.init(MAC_Addr,MyIP_Addr,IP_Subnet,IP_Gateway);
@@ -88,14 +88,14 @@ void IoInit(void){
     printf("Ethernet.connecting \r\n");
     returnCode = eth.connect();
     printf(" - connecting returned %d \r\n", returnCode);
-    printf("IP Address is %s\r\n", eth.getIPAddress());
+    printf("IP Address is %s\r\n", eth.get_ip_address());
 
     if (RxUdp.init() == 0)
         printf("init socket udp in ricezione OK\r\n");
     if (RxUdp.bind(1032) == 0)
         printf("bind RX socket 1032 udp OK\r\n");
     RxEndpoint.set_address(MyIP_Addr, 1032);
-    RxUdp.set_blocking (false,0) ;
+    RxUdp.set_blocking(false);
 
     if (TxUdp.init() == 0)
         printf("init socket udp in trasmissione OK\r\n");
@@ -103,7 +103,7 @@ void IoInit(void){
         printf("bind TX socket udp 1031 OK\r\n");
     //TxEndpoint.set_address("192.168.0.20", 1031);
     TxEndpoint.set_address("192.168.0.102", 1050);
-    TxUdp.set_blocking(false,0) ;
+    TxUdp.set_blocking(false);
 
     //configura ed apre la porta web
     WebSrv.set_blocking(false);
