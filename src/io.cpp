@@ -38,8 +38,8 @@ Endpoint RxEndpoint;
 UDPSocket TxUdp;
 Endpoint TxEndpoint;
 //per porta web
-TCPSocketServer WebSrv;
-TCPSocketConnection WebClient;
+TCPSocket WebSrv;
+TCPSocket *WebClient;
 bool serverIsListened = false;
 bool clientIsConnected = false;
 
@@ -103,10 +103,10 @@ void IoInit(void){
     TxUdp.set_blocking(false,0) ;
 
     //configura ed apre la porta web
-    WebSrv.set_blocking(false,0) ;
+    WebSrv.set_blocking(false);
 
     //setup tcp socket
-    if(WebSrv.bind(80)< 0) {
+    if(WebSrv.bind(80) < 0) {
         printf("web 80 port tcp server bind failed.\n\r");
         return;
     } else {
@@ -238,15 +238,18 @@ void IoMain(void){
     //Pagine WEB
     if (serverIsListened) {
         //NON blocking mode
-        if(WebSrv.accept(WebClient)<0) {
+        nsapi_size_or_error_t WebSrvError;
+        WebClient = WebSrv.accept(&WebSrvError);
+        if(WebSrvError < 0) {
             //printf("failed to accept connection.\n\r");
         } else {
             //printf("connection success!\n\rIP: %s\n\r",WebClient.get_address());
             clientIsConnected = true;
-            WebClient.set_blocking (true,50) ;  //importante ! questa causa il nonblocking
+            WebClient->set_blocking(true);  //importante ! questa causa il nonblocking
+            WebClient->set_timeout(50);
  
             while(clientIsConnected) {
-                switch(WebClient.receive(WebBuffer, 1023)) {
+                switch(WebClient->recv(WebBuffer, 1023)) {
                     case 0:
                         //printf("recieved buffer is empty.\n\r");
                         clientIsConnected = false;
@@ -280,19 +283,19 @@ void IoMain(void){
                             char echoHeader[256] = {};
                             //sprintf(echoHeader,"HTTP/1.1 200 OK\n\rContent-Length: %d\n\rContent-Type: text\n\rConnection: Close\n\r\n\r",strlen(WebBuffer));
                             sprintf(echoHeader,"HTTP/1.1 200 OK\r\nContent-Type: text; charset=UTF-8\r\nHost: 192.168.0.22:80\r\nConnection: Close\r\n\r\n");
-                            WebClient.send(echoHeader,strlen(echoHeader));
+                            WebClient->send(echoHeader,strlen(echoHeader));
 
                             if(strcmp(pFields[1],"/") == 0 ) {
                                 //printf("GET pagina Home\r\n");
                                 //setup http response header & data
                                 sprintf(WebBuffer,"<head><title>NATPC Cupola</title></head>");
-                                WebClient.send(WebBuffer,strlen(WebBuffer));
+                                WebClient->send(WebBuffer,strlen(WebBuffer));
                                 sprintf(WebBuffer,"<body bgcolor=\"#0099ff\"><center><h1>Automazione Cupola NATPC\r\n<br></h1>Posizione cupola: %d\n\r<br>Posizione Encoder: %d\r\n",DomePosition,EncoderPosition);
-                                WebClient.send(WebBuffer,strlen(WebBuffer));
+                                WebClient->send(WebBuffer,strlen(WebBuffer));
                                 sprintf(WebBuffer,"<br>Azimut Telescopio: %d\r\n</center></body>",TelescopePosition);
-                                WebClient.send(WebBuffer,strlen(WebBuffer));
+                                WebClient->send(WebBuffer,strlen(WebBuffer));
                                 sprintf(WebBuffer,"<br>Altezza Telescopio: %d\r\n</center></body>",TelescopeAlt);
-                                WebClient.send(WebBuffer,strlen(WebBuffer));
+                                WebClient->send(WebBuffer,strlen(WebBuffer));
                             }
                             //dati per app tablet
                             if (strcmp(pFields[1],"/GetData.php") == 0 ){
@@ -307,7 +310,7 @@ void IoMain(void){
                                 };
                                 sprintf(WebBuffer,"{ \"AzTelescopio\":%d , \"AltTelescopio\":%d , \"PosCupola\":%d , \"Oltrecorsa\":%d , \"Movimento\":%d}\n",TpAz,TpAlt,DomePosition,EncoderPosition/360,\
                                     DomeMotion == 1 || DomeManMotion == 1 ? 1 : 0);
-                                WebClient.send(WebBuffer,strlen(WebBuffer));
+                                WebClient->send(WebBuffer,strlen(WebBuffer));
                             }
                             //centra la cupola sul telescopio
                             //ma solo se il link con il tlescopio è ok
@@ -332,7 +335,7 @@ void IoMain(void){
                 }
             }
             //printf("chiusura connessione\n\r");
-            WebClient.close();
+            WebClient->close();
         }
     }
         
