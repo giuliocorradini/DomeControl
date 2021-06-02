@@ -6,10 +6,6 @@
 #include "dome.h"
 #include "i2c.h"
 
-//elenco inizio locazioni di memoria EEROM
-#define EeromTouchLoc   0   //16 locazioni per calibrazione touchscreen
-#define EeromParkLoc    16  //2 locazioni per quota parcheggio
-
 Ticker tick;
  
 DigitalOut led(LED1);
