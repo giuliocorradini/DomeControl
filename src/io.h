@@ -7,3 +7,7 @@ void IoMain(void);
 #define Automatico 1
 
 extern BufferedSerial Pc;
+
+namespace net::interfaces {
+    inline NetworkInterface *eth0;
+}

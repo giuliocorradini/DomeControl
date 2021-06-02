@@ -78,6 +78,7 @@ void IoInit(void){
     ThisThread::sleep_for(1s); // 1 second for stable state
     printf("\r\ninitializing Ethernet\r\n");
     returnCode = eth.init(MAC_Addr,MyIP_Addr,IP_Subnet,IP_Gateway);
+    net::interfaces::eth0 = &eth;
  
     if ( returnCode == 0 ){
         printf(" - Ethernet ready\r\n");
