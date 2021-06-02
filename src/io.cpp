@@ -1,12 +1,15 @@
 #include "io.h"
+#include <stdio.h>
 #include <string>
 #include "mbed.h"
 #include "dome.h"
+#include "gui.h"
 #include "WIZnetInterface.h"
 
 BufferedSerial Pc(USBTX,USBRX);
 //RawSerial server(PA_9,PA_10);
 UnbufferedSerial encoder(PA_11,PA_12);
+FILE *encoder_file = fdopen(&encoder, "w+");
 
 int EncRxEndFlag = 0;
 
@@ -57,10 +60,10 @@ void IoInit(void){
     int returnCode = 0;
 
     encoder.baud(19200);
-    encoder.format(8,encoder.None,1);
-    encoder.attach(&encrx,encoder.RxIrq);
+    encoder.format(8, SerialBase::None, 1);
+    encoder.attach(&encrx, SerialBase::RxIrq);
     EncRxPtr = EncBuff;
-    encoder.puts("ND");    //inizializza l'encoder a trasmettere in decimale e no debug mode
+    fputs("ND", encoder_file);    //inizializza l'encoder a trasmettere in decimale e no debug mode
 
     /*server.baud(9600);
     server.format(8,server.None,1);
@@ -174,7 +177,7 @@ void IoMain(void){
     //ogni secondo...
     if (++CycleCounter == 50)
         //invia una richiesta di posizione all'encoder
-        encoder.puts("R");
+        fputs("R", encoder_file);
     
     //ogni secondo
     if (CycleCounter == 100){
@@ -348,7 +351,7 @@ void encrx(void){
     char tmp;
     static int EncRxcnt = 0;    
     
-    tmp = encoder.getc();
+    tmp = fgetc(encoder_file);
     //Pc.putc(tmp);
     if (tmp == '\n') {
         if (EncRxcnt < 10)
