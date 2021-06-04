@@ -25,3 +25,10 @@ void DomePark(void);
 int MotionStart( int Dist2Go );
 void DomeManStart(int dir);
 void DomeManStop(void);
+
+namespace Dome {
+    namespace MovementDirection {
+        const int Clockwise = Cw;
+        const int CounterClockwise = Ccw;
+    };
+};
