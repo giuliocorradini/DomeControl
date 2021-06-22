@@ -5,14 +5,16 @@
 #include "MQTTClientMbedOs.h"
 #include "mqtt/mqtt.h"
 #include "dome.h"
+#include "config.h"
 
 using namespace std;
 
-void Remote::Enable(int services) {
+void Remote::Init(enum available_services services) {
     if (services & Remote::MQTT) {
+        MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
 
         //Callback function for targeted movement instructions
-        MQTTController::subscribe("dome/1/position", [](MQTT::MessageData &msg) {
+        MQTTController::subscribe("dome/" CONFIG_DOME_ID "/position", [](MQTT::MessageData &msg) {
             printf("MQTT Received targeted movement instruction\n");
 
             char payload[256];
@@ -35,7 +37,7 @@ void Remote::Enable(int services) {
         });
 
         //Simple movement instructions responder
-        MQTTController::subscribe("dome/1/movement", [](MQTT::MessageData &msg) {
+        MQTTController::subscribe("dome/" CONFIG_DOME_ID "/movement", [](MQTT::MessageData &msg) {
             printf("MQTT Received movement instruction\n");
 
             char payload[256];
