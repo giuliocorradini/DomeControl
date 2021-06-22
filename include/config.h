@@ -1,0 +1,2 @@
+#define CONFIG_DOME_ID  "1"
+#define CONFIG_MQTT_BROKER_ADDR  "192.168.0.27"
