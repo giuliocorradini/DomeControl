@@ -9,10 +9,10 @@ using namespace MQTTController;
 static TCPSocket sock;
 MQTTClient *MQTTController::client;
 
-void init() {
+void init(char *broker) {
     sock.open(net::interfaces::eth0);
 
-    SocketAddress mqtt_server("192.168.0.27", 1883);
+    SocketAddress mqtt_server(broker, 1883);
     sock.connect(mqtt_server);
 
     client = new MQTTClient(&sock);
