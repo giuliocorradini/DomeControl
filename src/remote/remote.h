@@ -12,8 +12,7 @@ namespace Remote {
     
     enum available_services {
         MQTT,
-        REST,
-        TOTAL
+        TOTAL_SERVICES
     };
 
     void Enable(int services);
