@@ -5,6 +5,7 @@
 #include "io.h"
 #include "dome.h"
 #include "i2c.h"
+#include "remote/remote.h"
 
 Ticker tick;
  
@@ -23,6 +24,8 @@ int main() {
     IoInit();
     TouchInit();    //touchscreen
     DomeInit();     //cupola
+
+    Remote::Init(Remote::MQTT);
 
     tick.attach(&timeout, 10ms);
    
