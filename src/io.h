@@ -11,3 +11,7 @@ extern BufferedSerial Pc;
 namespace net::interfaces {
     inline NetworkInterface *eth0;
 }
+
+
+
+

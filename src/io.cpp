@@ -43,8 +43,8 @@ SocketAddress TxEndpoint;
 //per porta web
 TCPSocket WebSrv;
 TCPSocket *WebClient;
-bool serverIsListened = false;
 bool clientIsConnected = false;
+Thread WebThread;
 
 //prototipi
 void encrx(void);
@@ -53,7 +53,7 @@ char SrvRxCharGet(void);
 uint8_t SrvRxCharPending(void);
 void srvrx(void);
 int32_t SrvValGet(char * ptr);      //parsing stringa alla ricerca di un numero decimale 
-
+void WebServerThread();
 
 
 void IoInit(void){
@@ -114,22 +114,23 @@ void IoInit(void){
     TxUdp.set_blocking(false);
 
     //configura ed apre la porta web
-    WebSrv.set_blocking(false);
+    WebSrv.set_blocking(true);
 
     //setup tcp socket
+    WebSrv.open(&eth);
     if(WebSrv.bind(80) < 0) {
         printf("web 80 port tcp server bind failed.\n\r");
         return;
     } else {
         printf("tcp server port 80 bind successed.\n\r");
-        serverIsListened = true;
     }
  
     if(WebSrv.listen(1) < 0) {
         printf("web server listen failed.\n\r");
         return;
     } else {
-        printf("web server is listening...\n\r");
+        printf("web server in ascolto...avvio thread\n\r");
+        WebThread.start(WebServerThread);
     }       
 }
 
@@ -141,8 +142,9 @@ void IoMain(void){
     #define EncMaxTimeout 500
     static int EncTimeout = EncMaxTimeout;
     char * SrvBufPtr;
-    char WebBuffer[1024] = {};
-    
+
+
+
     //lettura stringa ricevuta dall'encoder per decodificare la posizione
     if (EncRxEndFlag == 1) {
         EncReadPtr = EncBuff;
@@ -182,6 +184,7 @@ void IoMain(void){
             EncTimeout--;  //forzalo a restare 500
     };
 
+
     //ogni secondo...
     if (++CycleCounter == 50)
         //invia una richiesta di posizione all'encoder
@@ -197,8 +200,10 @@ void IoMain(void){
         TxUdp.sendto(TxEndpoint, SrvRxBuffer, strlen(SrvRxBuffer));
         CycleCounter = 0;
     };
-    
+
+
     //legge dati dal socket udp di ricezione
+    /*
     temp = RxUdp.recvfrom(&RxEndpoint, SrvRxBuffer, SrvRxBufSize);
     if (temp>0){
         SrvRxBuffer[temp] = '\n';
@@ -245,10 +250,15 @@ void IoMain(void){
             HostTimeout--;  //forzalo a restare 500
         
     };
+    */
+};
+
+
+//Pagine WEB in un thred a parte
+void WebServerThread(){
+    char WebBuffer[1024] = {};
     
-    //Pagine WEB
-    if (serverIsListened) {
-        //NON blocking mode
+    while (true) {
         nsapi_size_or_error_t WebSrvError;
         WebClient = WebSrv.accept(&WebSrvError);
         if(WebSrvError < 0) {
@@ -256,7 +266,6 @@ void IoMain(void){
         } else {
             //printf("connection success!\n\rIP: %s\n\r",WebClient.get_address());
             clientIsConnected = true;
-            WebClient->set_blocking(true);  //importante ! questa causa il nonblocking
             WebClient->set_timeout(50);
  
             while(clientIsConnected) {
@@ -278,6 +287,7 @@ void IoMain(void){
                             char* pString = WebBuffer;
                             char* pField;
                             char* pFields[2];
+                            char empty[1] = {0};
     
                             for(int i=0; i<2; i++){
                                 pField = strtok(pString, " ");
@@ -285,7 +295,7 @@ void IoMain(void){
                                 if(pField != NULL){
                                     pFields[i] = pField;
                                 } else {
-                                    pFields[i] = "";
+                                    pFields[i] = empty;
                                 }
  
                                 pString = NULL; //to make strtok continue parsing the next field rather than start again on the original string (see strtok documentation for more details)

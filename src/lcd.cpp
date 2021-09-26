@@ -121,14 +121,16 @@ const char maskbit[8] = {0x0,0x80,0xC0,0xE0,0xF0,0xF8,0xFC,0xFE};
 const char maskbit[9] = {0x0,0x1,0x3,0x7,0xF,0x1F,0x3F,0x7F,0x7F};
 #endif
 
-void delay(unsigned int n){
-    unsigned int i,j;
+void delay(volatile unsigned int n){
+    volatile unsigned int i,j;
     for (i=0;i<n;i++)
           for (j=0;j<350;j++)
               {;}
 }
 
-void delay1(unsigned int i){
+//26-09-2021 con il nuovo compilaote il volatile è molto importante
+//altrimenti questa delay NON funziona correttamente
+void delay1(volatile unsigned int i){
     while(i--);
 }
 
@@ -181,7 +183,7 @@ void NHLCD::comm_out(unsigned char j){
     WR = 0;                 // set to 0 for write operation
     delay1(2);              // wait for operation to complete
     WR = 1;
-    CS = 1;   //dopo un comando c'e' SEMPRE un'altro dato quindi NON rialziamo il CS
+//    CS = 1;   //dopo un comando c'e' SEMPRE un'altro dato quindi NON rialziamo il CS
 }
 
 // send data to the LCD
@@ -216,6 +218,7 @@ char NHLCD::VramRd(unsigned int Loc) {
     A0 = 1;
 
     GPIOC->MODER &= 0xFFFF0000; //porta display come ingressi
+    delay1(2);
     //attiva CS abbassandolo
     CS = 0 ;
     //lettura dal chip RA8835
@@ -407,7 +410,7 @@ void NHLCD::Hline (unsigned int row, unsigned int col, unsigned int w, char colo
 
   unsigned int addr;//,addr2;
   char mask, mask2,tmp;
-  int b;
+  unsigned int b;
     //questa per lo schermo girato di 180°
 #ifdef Schermo180
   addr = (GRAPHIC_AREA * LCD_YDOTS) - 1 -((GRAPHIC_AREA * row) + (col >> 3));
@@ -538,10 +541,11 @@ void NHLCD::Hline (unsigned int row, unsigned int col, unsigned int w, char colo
             screenBuffer[addr] |= ~mask;
             b = screenBuffer[addr];
             break;
-        case grigio:                  //con il grigio NON modifichiamo il framebuffer
-            b = VramRd(addr) | ~mask;
+        case grigio:
+            tmp = VramRd(addr);                  //con il grigio NON modifichiamo il framebuffer
+            b = tmp | ~mask;
             RamSelect(addr);
-            break;
+           break;
         case nogrigio:                //con il grigio NON modifichiamo il framebuffer
             b = VramRd(addr) & mask;
             RamSelect(addr);
@@ -551,6 +555,8 @@ void NHLCD::Hline (unsigned int row, unsigned int col, unsigned int w, char colo
     Busy();
     comm_out(0x42);                   // command to write data
     data_out(b);                      // write byte to the screen  
+
+
   };    
 
 }
@@ -612,6 +618,7 @@ void NHLCD::Init(void){
     GPIOC->OSPEEDR = 0x01555555;  //uscite fast speed
     GPIOC->MODER |= 0x01550000;
     GPIOC->MODER &= 0xFFFF0000;
+    GPIOC->PUPDR = 0x0000AAAA;      //bus dati tutti in pulldown
     WR = 1;
     RD = 1;
     CS = 1;
@@ -659,6 +666,10 @@ void NHLCD::Init(void){
     data_out(0x34); // screen1 ON, 2 flashing
     
     clearScreen();
+    
+
+
+
 }
 
 /**

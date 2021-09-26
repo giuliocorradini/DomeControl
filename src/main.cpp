@@ -24,17 +24,15 @@ int main() {
     IoInit();
     TouchInit();    //touchscreen
     DomeInit();     //cupola
-
     Remote::Init(Remote::MQTT);
 
     tick.attach(&timeout, 10ms);
    
     while(1) {
-        
         GuiMain();
         IoMain();
         DomeMain();
-
+        led = !led;
         //attende lo scadere dei 10msec
         while (FlagTick == 0);
         FlagTick = 0;
