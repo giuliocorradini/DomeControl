@@ -1,0 +1,6 @@
+all'avvio iscriviamo su 
+t1/telescopio/az per leggere AZ attuale
+t1/cupola/pos dove pubblichiamo la posizione attuale in gradi ogni secondo
+t1/cupola/cmd per ricevere comandi dal tablet
+    cmd puo essere: centra insegui noinsegui
+
