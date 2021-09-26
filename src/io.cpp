@@ -7,9 +7,8 @@
 #include "WIZnetInterface.h"
 
 BufferedSerial Pc(USBTX,USBRX);
-//RawSerial server(PA_9,PA_10);
+
 UnbufferedSerial encoder(PA_11,PA_12);
-FILE *encoder_file = fdopen(&encoder, "w+");
 
 int EncRxEndFlag = 0;
 
@@ -63,7 +62,7 @@ void IoInit(void){
     encoder.format(8, SerialBase::None, 1);
     encoder.attach(&encrx, SerialBase::RxIrq);
     EncRxPtr = EncBuff;
-    fputs("ND", encoder_file);    //inizializza l'encoder a trasmettere in decimale e no debug mode
+    encoder.write("ND", 2);    //inizializza l'encoder a trasmettere in decimale e no debug mode
 
     /*server.baud(9600);
     server.format(8,server.None,1);
@@ -188,7 +187,7 @@ void IoMain(void){
     //ogni secondo...
     if (++CycleCounter == 50)
         //invia una richiesta di posizione all'encoder
-        fputs("R", encoder_file);
+        encoder.write("R", 1);
     
     //ogni secondo
     if (CycleCounter == 100){
@@ -362,6 +361,7 @@ void WebServerThread(){
         
 }
 
+//routine in arrivo dall'interrupt seriale ricezione
 //riceviamo una stringa fino al newline e solo se abbiamo finito di leggere
 //la precedente, non implementiamo buffer circolare ect etc dato che dobbiamo leggere
 //un solo tipo di dati !
@@ -369,8 +369,7 @@ void encrx(void){
     char tmp;
     static int EncRxcnt = 0;    
     
-    tmp = fgetc(encoder_file);
-    //Pc.putc(tmp);
+    encoder.read(&tmp,1);
     if (tmp == '\n') {
         if (EncRxcnt < 10)
             EncRxEndFlag = 1;
@@ -382,46 +381,6 @@ void encrx(void){
     };
 }
 
-/*NON USATO
-
-ricezione dal server di automazione in buffer circolare
-void srvrx(void){
-    uint8_t temp;
-    temp = SrvRxBufHead;
-    SrvRxBuffer[SrvRxBufHead] = server.getc();
-    SrvRxBufHead++;
-    if (SrvRxBufHead == SrvRxBufSize)           //buffer circolare
-        SrvRxBufHead = 0;
-    if (SrvRxBufHead == SrvRxBufTail)         //overrun !
-        SrvRxBufHead = temp;
-    
-}
-
-//ritorna un carattere dal buffer di ricezione seriale server
-char SrvRxCharGet(void) {
-    char temp;
-    uint32_t timeout = 0;
-    while (SrvRxBufHead == SrvRxBufTail){
-        if (timeout++ == 200000)
-            return '\n';
-    };     //attende che nel buffer ci sia almeno un carattere
-    temp = SrvRxBuffer[SrvRxBufTail];
-    SrvRxBufTail++;
-    if (SrvRxBufTail == SrvRxBufSize)
-        SrvRxBufTail = 0;
-    return temp;
-}
-
-//restituisce 1 se c'è almeno un carattere in attesa di essere letto
-//dal buffer seriale dal server
-uint8_t SrvRxCharPending(void) {
-
-    if (SrvRxBufHead == SrvRxBufTail)
-        return 0;
-    else
-        return 1;
-
-}*/
 
 
 int ParseNumber(char * ptrdato){
