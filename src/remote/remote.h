@@ -8,10 +8,5 @@
 #pragma once
 
 namespace Remote {
-    enum available_services {
-        MQTT,
-        TOTAL_SERVICES
-    };
-
-    void Init(enum available_services services);
+    void Init(int services);
 };

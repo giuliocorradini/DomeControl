@@ -6,50 +6,53 @@
 #include "mqtt/mqtt.h"
 #include "dome.h"
 #include "config.h"
+#include "mbed_debug.h"
 
 using namespace std;
 
-void Remote::Init(enum available_services services) {
-    if (services & Remote::MQTT) {
-        MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
+void Remote::Init(int services = 0) {
+    //Prepare MQTT subscriptions
+    MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
 
-        //Callback function for targeted movement instructions
-        MQTTController::subscribe("dome/" CONFIG_DOME_ID "/position", [](MQTT::MessageData &msg) {
-            printf("MQTT Received targeted movement instruction\n");
+    //Receive telescope coordinates
+    MQTTController::subscribe("T1/telescopio/az", [](MQTT::MessageData &msg) {
+        debug("[MQTT] Received telescope azimuth update");
 
-            char payload[256];
-            strncpy(payload, (char*)msg.message.payload, msg.message.payloadlen > 255 ? 255 : msg.message.payloadlen);
-            cmatch matches;
+        int azimuth;
+        if(!sscanf((char *)msg.message.payload, "%d", &azimuth)) {
+            azimuth = azimuth > 0 ? (azimuth <= 90 ? azimuth : 90) : 0; //Clamp in [0, 90] without branching
+        } else {
+            debug("[MQTT] Error while parsing telescope azimuth");
+        }
+        
+    });
 
-            //Absolute position
-            const static regex target_re("^goto ([+-]?\\d+)");
-            if(regex_match(payload, matches, target_re)) {
-                int target_position = stoi(matches[1]);
-                printf("Move dome to absolute position: %d\n", target_position);
-            }
+    MQTTController::subscribe("T1/telescopio/alt", [](MQTT::MessageData &msg) {
+        debug("[MQTT] Received telescope altitude update");
 
-            //Relative movement
-            const static regex relative_re("^move ([+-]?\\d+)");
-            if(regex_match((char *)payload, matches, relative_re)) {
-                int correction = stoi(matches[1].str());
-                printf("Move dome to relative position: %d\n", correction);
-            }
-        });
+        int altitude;
+        if(sscanf((char *)msg.message.payload, "%d", &altitude)) {
+            altitude = altitude > 0 ? (altitude <= 90 ? altitude : 90) : 0; //Clamp in [0, 90] without branching
+        } else {
+            debug("[MQTT] Error while parsing telescope altitude");
+        }
+        
+    });
+    
+    //Commands
+    MQTTController::subscribe("T1/cupola/cmd", [](MQTT::MessageData &msg) {
+        debug("[MQTT] Received command");
 
-        //Simple movement instructions responder
-        MQTTController::subscribe("dome/" CONFIG_DOME_ID "/movement", [](MQTT::MessageData &msg) {
-            printf("MQTT Received movement instruction\n");
+        char *command = (char *)msg.message.payload;
 
-            char payload[256];
-            strncpy(payload, (char*)msg.message.payload, msg.message.payloadlen > 255 ? 255 : msg.message.payloadlen);
+        if(strcmp(command, "centra")) {
 
-            if(strcmp("start", payload) == 0) {
-                DomeManStart(Dome::MovementDirection::Clockwise);
-            } else if (strcmp("stop", payload) == 0) {
-                DomeManStop();
-            } else if (strcmp("park", payload) == 0) {
-                DomePark();
-            }
-        });
-    }
+        } else if (strcmp(command, "insegui")) {
+
+        } else if (strcmp(command, "no_insegui")) {
+
+        } else {
+            debug("[MQTT] Unrecognised command received");
+        }
+    });
 }
