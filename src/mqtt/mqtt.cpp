@@ -9,7 +9,7 @@ using namespace MQTTController;
 static TCPSocket sock;
 MQTTClient *MQTTController::client;
 
-void init(char *broker) {
+void MQTTController::init(char *broker) {
     sock.open(net::interfaces::eth0);
 
     SocketAddress mqtt_server(broker, 1883);
@@ -23,7 +23,7 @@ void init(char *broker) {
     client->connect(connectOptions);
 }
 
-void end() {
+void MQTTController::end() {
     client->disconnect();
     sock.close();
 }
