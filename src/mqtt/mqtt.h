@@ -11,7 +11,6 @@
 #include "MQTTClient.h"
 
 namespace MQTTController {
-    extern MQTTClient *client;
 
     // Creates an MQTTClient and connects to a broker
     void init(char *broker);
@@ -19,5 +18,7 @@ namespace MQTTController {
 
     void publish(const char *topic, const char *msg, int n);
     void publish(const char *topic, const char *msg);
-    void subscribe(const char *topic, MQTTClient::messageHandler callback);
+
+    typedef void (*MessageHandler_t)(MQTT::MessageData &);
+    void subscribe(const char *topic, MessageHandler_t callback);
 };

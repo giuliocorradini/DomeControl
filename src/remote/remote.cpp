@@ -5,7 +5,7 @@
 #include "dome.h"
 #include "config.h"
 #include "mbed_debug.h"
-#include "MQTTClient.h"
+#include "mqtt/mqtt.h"
 
 using namespace std;
 

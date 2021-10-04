@@ -1,38 +1,35 @@
-#include "mqtt.h"
 #include "mbed.h"
 #include "string.h"
+#include "mqtt.h"
 #include "MQTTClient.h"
+#include "MQTTmbed.h"
+#include "MQTTSocket.h"
 #include "io.h"
 
-using namespace MQTTController;
+MQTT::Client<MQTTSocket, Countdown> *client;
+MQTTSocket network = MQTTSocket(net::interfaces::eth0);
 
-static TCPSocket sock;
-MQTTClient *MQTTController::client;
+namespace MQTTController {
 
-void MQTTController::init(char *broker) {
-    sock.open(net::interfaces::eth0);
+void init(char *broker) {
+    client = new MQTT::Client<MQTTSocket, Countdown>(network);
 
-    SocketAddress mqtt_server(broker, 1883);
-    sock.connect(mqtt_server);
-
-    client = new MQTTClient(&sock);
-
-    MQTTSNPacket_connectData connectOptions;
-    connectOptions.duration = 20;
+    MQTTPacket_connectData connectOptions;
+    connectOptions.keepAliveInterval = 20;
     connectOptions.cleansession = true;
     client->connect(connectOptions);
 }
 
-void MQTTController::end() {
+void end() {
     client->disconnect();
-    sock.close();
+    network.disconnect();
 }
 
 /*
  *  Publish a message on a given topic.
  *  Payload can be anything. Expected size in bytes.
  */
-void MQTTController::publish(const char *topic, const char *msg, int n) {
+void publish(const char *topic, const char *msg, int n) {
     using namespace MQTT;
     Message mqtt_msg = {
         .payload = (void *)msg,
@@ -46,10 +43,12 @@ void MQTTController::publish(const char *topic, const char *msg, int n) {
  *  Publish a message on given topic.
  *  Message is a C string (NULL terminated).
  */
-void MQTTController::publish(const char *topic, const char* msg) {
+void publish(const char *topic, const char* msg) {
     publish(topic, msg, strlen(msg));
 }
 
-void MQTTController::subscribe(const char *topic, MQTTClient::messageHandler callback) {
+void subscribe(const char *topic, MessageHandler_t callback) {
     client->subscribe(topic, MQTT::QOS0, callback);
+}
+
 }
