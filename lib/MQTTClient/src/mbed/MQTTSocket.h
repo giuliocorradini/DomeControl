@@ -2,28 +2,28 @@
 #define MQTTSOCKET_H
 
 #include "MQTTmbed.h"
-#include <EthernetInterface.h>
-#include <Timer.h>
 
-class MQTTSocket
-{
+class MQTTSocket {
 public:
-    MQTTSocket(EthernetInterface *anet)
+    MQTTSocket(NetworkInterface *anet)
     {
         net = anet;
         open = false;
+        mysock = new TCPSocket();
     }
     
     int connect(char* hostname, int port, int timeout=1000)
     {
         if (open)
             disconnect();
-        nsapi_error_t rc = mysock.open(net);
+        nsapi_error_t rc = mysock->open(net);
         open = true;
-        mysock.set_blocking(true);
-        mysock.set_timeout((unsigned int)timeout);  
-        rc = mysock.connect(hostname, port);
-        mysock.set_blocking(false);  // blocking timeouts seem not to work
+        mysock->set_blocking(true);
+        mysock->set_timeout((unsigned int)timeout);  
+
+        SocketAddress addr(hostname, port);
+        rc = mysock->connect(addr);
+        mysock->set_blocking(false);  // blocking timeouts seem not to work
         return rc;
     }
 
@@ -31,7 +31,7 @@ public:
     int common(unsigned char* buffer, int len, int timeout, bool read)
     {
         timer.start();
-        mysock.set_blocking(false); // blocking timeouts seem not to work
+        mysock->set_blocking(false); // blocking timeouts seem not to work
         int bytes = 0;
         bool first = true;
         do 
@@ -39,12 +39,12 @@ public:
             if (first)
                 first = false;
             else
-                wait_ms(timeout < 100 ? timeout : 100);
+                ThisThread::sleep_for(timeout < 100 ? timeout : 100);
             int rc;
             if (read)
-                rc = mysock.recv((char*)buffer, len);
+                rc = mysock->recv((char*)buffer, len);
             else
-                rc = mysock.send((char*)buffer, len);
+                rc = mysock->send((char*)buffer, len);
             if (rc < 0)
             {
                 if (rc != NSAPI_ERROR_WOULD_BLOCK)
@@ -77,7 +77,7 @@ public:
     int disconnect()
     {
         open = false;
-        return mysock.close();
+        return mysock->close();
     }
 
     /*bool is_connected()
@@ -88,8 +88,8 @@ public:
 private:
 
     bool open;
-    TCPSocket mysock;
-    EthernetInterface *net;
+    TCPSocket *mysock;
+    NetworkInterface *net;
     Timer timer;
 
 };
