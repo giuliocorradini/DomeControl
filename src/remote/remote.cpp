@@ -9,6 +9,8 @@
 
 using namespace std;
 
+static int azimuth;
+
 namespace Remote {
 void init() {
     //Prepare MQTT subscriptions
@@ -18,7 +20,6 @@ void init() {
     MQTTController::subscribe("T1/telescopio/az", [](MQTT::MessageData &msg) {
         debug("[MQTT] Received telescope azimuth update");
 
-        int azimuth;
         if(!sscanf((char *)msg.message.payload, "%d", &azimuth)) {
             azimuth = azimuth > 0 ? (azimuth <= 90 ? azimuth : 90) : 0; //Clamp in [0, 90] without branching
         } else {

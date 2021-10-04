@@ -1,3 +1,12 @@
+/*
+ *  dome.h
+ *  Routine di controllo del movimento della cupola (motore e encoder)
+ */
+
+#pragma once
+
+#include "mbed.h"
+
 extern int EncoderPosition;
 extern int QuotaParcheggio;
 extern int DomePosition;
@@ -31,4 +40,13 @@ namespace Dome {
         const int Clockwise = Cw;
         const int CounterClockwise = Ccw;
     };
+
+    namespace API {
+        enum cmd_actions {CENTER, TRACK, NO_TRACK};
+        struct Command {
+            int                 azimuth;
+            enum cmd_actions    action;
+        };
+        extern Mail<Command, 10> command_queue;
+    }
 };

@@ -23,6 +23,8 @@ int DomeManMotion = 0;      //movimento manuale in corso
 DigitalInOut CwOut(PA_6,PIN_OUTPUT,PullNone,0);
 DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
 
+Mail<Dome::API::Command, 10> command_queue;
+
 void DomeInit(void) {
 
     //recupera la quota di parcheggio cupola dalla eerom
@@ -54,6 +56,29 @@ void DomeMain(void){
                 DomeMoveStop();
         };
     };
+
+    //TODO: Notifica il modulo MQTT della posizione corrente
+
+    //Controllo la posta per eseguire nuovi comandi dal modulo MQTT
+    using namespace Dome;
+    API::Command *cmd;
+
+    if(cmd = command_queue.try_get()) { //Leggo l'ultimo comando
+
+        switch(cmd->action) {
+            case API::CENTER:
+                DomeMoveStart(cmd->azimuth, Rollover);
+                break;
+            case API::TRACK:
+                DomeMoveStart(cmd->azimuth, Tracking);
+                break;
+            case API::NO_TRACK:
+                DomeMoveStop();
+                break;
+        }
+
+        command_queue.free(cmd);    //Libero spazio nella cassetta postale
+    }
 
 }
 
