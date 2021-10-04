@@ -1,7 +1,7 @@
 #include "mqtt.h"
 #include "mbed.h"
 #include "string.h"
-#include "MQTTClientMbedOs.h"
+#include "MQTTClient.h"
 #include "io.h"
 
 using namespace MQTTController;

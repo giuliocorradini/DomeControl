@@ -8,7 +8,7 @@
 #pragma once
 
 #include "mbed.h"
-#include "MQTTClientMbedOs.h"
+#include "MQTTClient.h"
 
 namespace MQTTController {
     extern MQTTClient *client;

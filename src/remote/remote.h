@@ -8,5 +8,5 @@
 #pragma once
 
 namespace Remote {
-    void Init(int services);
+    void init();
 };

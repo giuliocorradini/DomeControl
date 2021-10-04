@@ -2,15 +2,14 @@
 #include "string.h"
 #include <regex>
 #include "mbed.h"
-#include "MQTTClientMbedOs.h"
-#include "mqtt/mqtt.h"
 #include "dome.h"
 #include "config.h"
 #include "mbed_debug.h"
+#include "MQTTClient.h"
 
 using namespace std;
 
-void Remote::Init(int services = 0) {
+void Remote::init() {
     //Prepare MQTT subscriptions
     MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
 

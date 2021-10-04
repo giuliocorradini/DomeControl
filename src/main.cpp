@@ -24,7 +24,7 @@ int main() {
     IoInit();
     TouchInit();    //touchscreen
     DomeInit();     //cupola
-    Remote::Init(Remote::MQTT);
+    Remote::init();
 
     tick.attach(&timeout, 10ms);
    
