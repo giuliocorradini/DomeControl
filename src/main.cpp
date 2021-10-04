@@ -17,6 +17,7 @@ void timeout(){
     FlagTick = 1;
 }
 
+Thread remote_conn_thread;
 
 int main() {
 
@@ -24,7 +25,11 @@ int main() {
     IoInit();
     TouchInit();    //touchscreen
     DomeInit();     //cupola
-    Remote::init();
+
+    /* setup remote connections (MQTT) */
+    remote_conn_thread.start(callback(
+        Remote::thread_routine
+    ));
 
     tick.attach(&timeout, 10ms);
    
@@ -38,5 +43,7 @@ int main() {
         FlagTick = 0;
     
     }
+
+    remote_conn_thread.terminate();
 }
 

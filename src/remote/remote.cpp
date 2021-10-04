@@ -9,7 +9,8 @@
 
 using namespace std;
 
-void Remote::init() {
+namespace Remote {
+void init() {
     //Prepare MQTT subscriptions
     MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
 
@@ -54,4 +55,23 @@ void Remote::init() {
             debug("[MQTT] Unrecognised command received");
         }
     });
+}
+
+void thread_routine() {
+    init();
+
+    int conn_status;
+
+    while(conn_status) {
+        conn_status = MQTTController::yield(1000);
+        if(conn_status == MQTT::FAILURE) {
+            debug("[MQTT] Error: disconnected from broker");
+            break;
+        }
+    }
+
+    //TODO: reconnect to MQTT broker
+    
+}
+
 }

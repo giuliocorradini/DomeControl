@@ -9,4 +9,5 @@
 
 namespace Remote {
     void init();
+    void thread_routine();
 };

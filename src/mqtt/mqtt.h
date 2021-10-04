@@ -9,9 +9,10 @@
 
 #include "mbed.h"
 #include "MQTTClient.h"
+#include "MQTTmbed.h"
+#include "MQTTSocket.h"
 
 namespace MQTTController {
-
     // Creates an MQTTClient and connects to a broker
     void init(char *broker);
     void end();
@@ -21,4 +22,6 @@ namespace MQTTController {
 
     typedef void (*MessageHandler_t)(MQTT::MessageData &);
     void subscribe(const char *topic, MessageHandler_t callback);
+
+    int yield(int wait_time);
 };

@@ -51,4 +51,8 @@ void subscribe(const char *topic, MessageHandler_t callback) {
     client->subscribe(topic, MQTT::QOS0, callback);
 }
 
+int yield(int wait_time) {
+    return client->yield(wait_time);
+}
+
 }
