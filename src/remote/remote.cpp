@@ -8,7 +8,6 @@
 
 using namespace std;
 
-static int azimuth;
 
 namespace Remote {
 void init() {
@@ -20,8 +19,10 @@ void init() {
     MQTTController::subscribe("T1/telescopio/az", [](MQTT::MessageData &msg) {
         debug("[MQTT] Received telescope azimuth update\n");
 
+        int azimuth;
         if(sscanf((char *)msg.message.payload, "%d", &azimuth)) {
             azimuth = azimuth > 0 ? (azimuth <= 90 ? azimuth : 90) : 0; //Clamp in [0, 90] without branching
+            TelescopePosition = azimuth;
         } else {
             debug("[MQTT] Error while parsing telescope azimuth");
         }
@@ -34,6 +35,7 @@ void init() {
         int altitude;
         if(sscanf((char *)msg.message.payload, "%d", &altitude)) {
             altitude = altitude > 0 ? (altitude <= 90 ? altitude : 90) : 0; //Clamp in [0, 90] without branching
+            TelescopeAlt = altitude;    //non thread-safe!
         } else {
             debug("[MQTT] Error while parsing telescope altitude");
         }
@@ -44,17 +46,27 @@ void init() {
     MQTTController::subscribe("T1/cupola/cmd", [](MQTT::MessageData &msg) {
         debug("[MQTT] Received command\n");
 
-        char *command = (char *)msg.message.payload;
+        char *command_str = (char *)msg.message.payload;
 
-        if(strcmp(command, "centra")) {
+        using namespace Dome;
 
-        } else if (strcmp(command, "insegui")) {
+        API::cmd_actions action;
 
-        } else if (strcmp(command, "no_insegui")) {
-
+        if(strncmp(command_str, "centra", 6) == 0) {
+            action = API::CENTER;
+        } else if (strncmp(command_str, "insegui", 7) == 0) {
+            action = API::TRACK;
+        } else if (strncmp(command_str, "no_insegui", 10) == 0) {
+            action = API::NO_TRACK;
         } else {
-            debug("[MQTT] Unrecognised command received");
+            debug("[MQTT] Unrecognised command received\n");
+            return;
         }
+
+        API::Command *cmd = API::command_queue.alloc();
+        cmd->action = action;
+        API::command_queue.put(cmd);
+        debug("[remote] Enqueued command\n");
     });
 }
 

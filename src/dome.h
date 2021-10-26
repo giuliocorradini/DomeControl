@@ -48,5 +48,12 @@ namespace Dome {
             enum cmd_actions    action;
         };
         extern Mail<Command, 10> command_queue;
+        extern Mutex tele_pos_mutex;
     }
 };
+
+//Call this macro or lock Dome::API::tele_pos_mutex when working with
+//TelescopePosition and TelescopeAlt variables
+#define SAFE_TELESCOPE_UPDATE(x)    Dome::API::tele_pos_mutex.lock(); \
+                                    x; \
+                                    Dome::API::tele_pos_mutex.unlock();

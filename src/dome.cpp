@@ -23,7 +23,10 @@ int DomeManMotion = 0;      //movimento manuale in corso
 DigitalInOut CwOut(PA_6,PIN_OUTPUT,PullNone,0);
 DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
 
-Mail<Dome::API::Command, 10> command_queue;
+namespace Dome::API {
+    Mail<Command, 10> command_queue;
+    Mutex tele_pos_mutex;   //Lock this mutex when writing/reading TelescopeAlt and TelescopePosition
+}
 
 void DomeInit(void) {
 
@@ -63,7 +66,9 @@ void DomeMain(void){
     using namespace Dome;
     API::Command *cmd;
 
-    if(cmd = command_queue.try_get()) { //Leggo l'ultimo comando
+    if(cmd = API::command_queue.try_get()) { //Leggo l'ultimo comando
+
+        debug("[dome] Received command %d\n", cmd->action);
 
         switch(cmd->action) {
             case API::CENTER:
@@ -77,7 +82,7 @@ void DomeMain(void){
                 break;
         }
 
-        command_queue.free(cmd);    //Libero spazio nella cassetta postale
+        API::command_queue.free(cmd);    //Libero spazio nella cassetta postale
     }
 
 }
