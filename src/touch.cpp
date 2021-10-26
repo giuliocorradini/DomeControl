@@ -52,7 +52,8 @@ void TouchInit(void){
     temp |= i2cmembuff[4];
     Settings.TouchYmax = temp;
 
-    //legge altri 8 bytes, la lettura è sequenziale non paginata come la write
+    i2cmembuff[0] = EeromTouchLoc + 8;
+    i2c.write(I2cMemAddr, i2cmembuff, 1, i2cNoEnd);
     i2c.read(I2cMemAddr, i2cmembuff, 8, false);
 
     temp = i2cmembuff[3];
