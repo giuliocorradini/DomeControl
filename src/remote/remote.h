@@ -7,7 +7,11 @@
 
 #pragma once
 
+#include "mbed.h"
+
 namespace Remote {
     void init();
     void thread_routine();
+
+    extern Queue<int, 10> telescope_position;
 };

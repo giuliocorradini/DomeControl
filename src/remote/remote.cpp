@@ -10,6 +10,7 @@ using namespace std;
 
 
 namespace Remote {
+Queue<int, 10> telescope_position;
 void init() {
     //Prepare MQTT subscriptions
     MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
@@ -80,6 +81,14 @@ void thread_routine() {
         if(conn_status == MQTT::FAILURE) {
             debug("[MQTT] Error: disconnected from broker");
         }
+
+        int *pos;
+        char pos_str[16];
+        if(telescope_position.try_get(&pos)) {
+            sprintf(pos_str, "%d", *pos);
+            MQTTController::publish("T1/cupola/pos", pos_str, true);
+        }
+
     } while(conn_status == MQTT::SUCCESS);
 
     //TODO: reconnect to MQTT broker

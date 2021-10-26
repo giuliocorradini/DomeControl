@@ -30,9 +30,10 @@ void end() {
  *  Publish a message on a given topic.
  *  Payload can be anything. Expected size in bytes.
  */
-void publish(const char *topic, const char *msg, int n) {
+void publish(const char *topic, const char *msg, int n, bool retain) {
     using namespace MQTT;
     Message mqtt_msg = {
+        .retained = retain,
         .payload = (void *)msg,
         .payloadlen = n
     };
@@ -44,8 +45,8 @@ void publish(const char *topic, const char *msg, int n) {
  *  Publish a message on given topic.
  *  Message is a C string (NULL terminated).
  */
-void publish(const char *topic, const char* msg) {
-    publish(topic, msg, strlen(msg));
+void publish(const char *topic, const char* msg, bool retain) {
+    publish(topic, msg, strlen(msg), retain);
 }
 
 void subscribe(const char *topic, MessageHandler_t callback) {
