@@ -2,8 +2,10 @@
 #define MQTTSOCKET_H
 
 #include "MQTTmbed.h"
+#include <Timer.h>
 
-class MQTTSocket {
+class MQTTSocket
+{
 public:
     MQTTSocket(NetworkInterface *anet)
     {
