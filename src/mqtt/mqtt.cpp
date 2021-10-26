@@ -1,28 +1,29 @@
 #include "mbed.h"
 #include "string.h"
-#include "mqtt.h"
+#include "mqtt/mqtt.h"
 #include "MQTTClient.h"
-#include "MQTTmbed.h"
 #include "MQTTSocket.h"
 #include "io.h"
 
 MQTT::Client<MQTTSocket, Countdown> *client;
-MQTTSocket network = MQTTSocket(net::interfaces::eth0);
+MQTTSocket *network;
 
 namespace MQTTController {
 
 void init(char *broker) {
-    client = new MQTT::Client<MQTTSocket, Countdown>(network);
+    network = new MQTTSocket(net::interfaces::eth0);
+    network->connect(broker, 1883);
+    client = new MQTT::Client<MQTTSocket, Countdown>(*network);
 
-    MQTTPacket_connectData connectOptions;
-    connectOptions.keepAliveInterval = 20;
+    MQTTPacket_connectData connectOptions = MQTTPacket_connectData_initializer;
+    connectOptions.keepAliveInterval = 400;
     connectOptions.cleansession = true;
     client->connect(connectOptions);
 }
 
 void end() {
     client->disconnect();
-    network.disconnect();
+    network->disconnect();
 }
 
 /*

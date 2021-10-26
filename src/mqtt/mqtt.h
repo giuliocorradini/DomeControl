@@ -9,8 +9,6 @@
 
 #include "mbed.h"
 #include "MQTTClient.h"
-#include "MQTTmbed.h"
-#include "MQTTSocket.h"
 
 namespace MQTTController {
     // Creates an MQTTClient and connects to a broker
