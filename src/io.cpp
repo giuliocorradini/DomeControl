@@ -5,6 +5,7 @@
 #include "dome.h"
 #include "gui.h"
 #include "WIZnetInterface.h"
+#include "config.h"
 
 BufferedSerial Pc(USBTX,USBRX);
 
@@ -26,24 +27,14 @@ char SrvRxBuffer[SrvRxBufSize];
 int HostLinkOk = 0;
 
 
-const char * MyIP_Addr    = "192.168.0.22";
-const char * IP_Subnet  = "255.255.255.0";
-const char * IP_Gateway = "192.168.0.1";
+const char * MyIP_Addr  = CONFIG_IP_ADDRESS;
+const char * IP_Subnet  = CONFIG_NETMASK;
+const char * IP_Gateway = CONFIG_GATEWAY_IP;
 unsigned char MAC_Addr[6] = {0x00,0x08,0xDC,0x12,0x34,0x56};
 
 //SPI spi(PB_5, PB_4, PB_3); // mosi, miso, sclk
 WIZnetInterface eth(PB_5, PB_4, PB_3, PB_6, PC_4);    // reset pin is dummy, don't affect any pin of WIZ550io
 
-//UDPSocket is imported with mbed.h
-UDPSocket RxUdp;
-SocketAddress RxEndpoint;
-UDPSocket TxUdp;
-SocketAddress TxEndpoint;
-//per porta web
-TCPSocket WebSrv;
-TCPSocket *WebClient;
-bool clientIsConnected = false;
-Thread WebThread;
 
 //prototipi
 void encrx(void);
@@ -89,48 +80,6 @@ void IoInit(void){
     returnCode = eth.connect();
     printf(" - connecting returned %d \r\n", returnCode);
     printf("IP Address is %s\r\n", eth.get_ip_address());
-
-    /* Configurazione endpoint UDP */
-    RxUdp.open(&eth);   //Apro socket UDP su interfaccia Ethernet
-    //if (RxUdp.init() == 0)
-    //    printf("init socket udp in ricezione OK\r\n");
-    if (RxUdp.bind(1032) == NSAPI_ERROR_OK)
-        printf("bind RX socket 1032 udp OK\r\n");
-    else
-        exit(-1);
-    RxEndpoint.set_ip_address(MyIP_Addr);
-    RxEndpoint.set_port(1032);
-    RxUdp.set_blocking(false);
-
-    //if (TxUdp.init() == 0)
-    //    printf("init socket udp in trasmissione OK\r\n");
-    TxUdp.open(&eth);
-    if (TxUdp.bind(1031) == 0)
-        printf("bind TX socket udp 1031 OK\r\n");
-    //TxEndpoint.set_address("192.168.0.20", 1031);
-    TxEndpoint.set_ip_address("192.168.0.102");
-    TxEndpoint.set_port(1050);
-    TxUdp.set_blocking(false);
-
-    //configura ed apre la porta web
-    WebSrv.set_blocking(true);
-
-    //setup tcp socket
-    WebSrv.open(&eth);
-    if(WebSrv.bind(80) < 0) {
-        printf("web 80 port tcp server bind failed.\n\r");
-        return;
-    } else {
-        printf("tcp server port 80 bind successed.\n\r");
-    }
- 
-    if(WebSrv.listen(1) < 0) {
-        printf("web server listen failed.\n\r");
-        return;
-    } else {
-        printf("web server in ascolto...avvio thread\n\r");
-        WebThread.start(WebServerThread);
-    }       
 }
 
 void IoMain(void){
@@ -191,174 +140,15 @@ void IoMain(void){
     
     //ogni secondo
     if (CycleCounter == 100){
-        //trasmetti la quota attuale verso il server
+        //trasmetti la quota attuale verso il broker
         SrvBufPtr = SrvRxBuffer;
         SrvBufPtr += sprintf(SrvBufPtr,"RP%d ",EncoderPosition);     //NB i due spazi dietro il %d verranno 'divorati' dal numero a 2 e tre cifre !
         *SrvBufPtr++ = ' ';
         SrvBufPtr += sprintf(SrvBufPtr,"DP%d\n",DomePosition);
-        TxUdp.sendto(TxEndpoint, SrvRxBuffer, strlen(SrvRxBuffer));
+        //TODO: send here to broker
         CycleCounter = 0;
     };
 
-
-    //legge dati dal socket udp di ricezione
-    /*
-    temp = RxUdp.recvfrom(&RxEndpoint, SrvRxBuffer, SrvRxBufSize);
-    if (temp>0){
-        SrvRxBuffer[temp] = '\n';
-        SrvRxBuffer[temp+1] = 0;
-        //printf("ricevuto %s\n",SrvRxBuffer);
-        SrvBufPtr = SrvRxBuffer;
-        switch (*SrvBufPtr++) {
-            case 'D':    // D : Display posizione del telescopio in gradi da mostrare a schermo
-                //prima arriva l'AZ
-                temp = SrvValGet(SrvBufPtr);
-                if (temp >= 0 || temp <360){
-                    TelescopePosition = temp;
-                    TelescopeDrawUpdate(temp);
-                    //considera attivo il link con il telescopio solo se ne arriva ciclicamente la quota attuale
-                    if (HostTimeout == HostMaxTimeout){
-                        GuiHostLinkShow(1);
-                    };
-                    HostTimeout = 0;
-                    HostLinkOk = 1;
-                };
-                //poi arriva l'Alt
-                temp = SrvValGet((char *) -1);   //prosegue dalla posizione precedente, il cast serve per evitare errori
-                if (temp >= 0 || temp <91)
-                    TelescopeAlt = temp;
-                break;
-            case 'T':   //Tracking , muove il telescopio in modo incrementale, usata per il tracciamento
-                temp = SrvValGet(SrvBufPtr);
-                if (temp >= 0 || temp <360){
-                    //avvia il posizionamento
-                    DomeMoveStart(temp,Tracking);
-                };
-                break;
-            case 'C':   //Centra la cupola sul telescopio
-                DomeMoveStart(TelescopePosition,Rollover);
-                break;
-                
-        };
-    } else {    //nessun carattere arrivato
-        if (HostTimeout == HostMaxTimeout -1){
-            HostLinkOk = 0;
-            GuiHostLinkShow(0);
-        }
-        if (HostTimeout++ == HostMaxTimeout)
-            HostTimeout--;  //forzalo a restare 500
-        
-    };
-    */
-};
-
-
-//Pagine WEB in un thred a parte
-void WebServerThread(){
-    char WebBuffer[1024] = {};
-    
-    while (true) {
-        nsapi_size_or_error_t WebSrvError;
-        WebClient = WebSrv.accept(&WebSrvError);
-        if(WebSrvError < 0) {
-            //printf("failed to accept connection.\n\r");
-        } else {
-            //printf("connection success!\n\rIP: %s\n\r",WebClient.get_address());
-            clientIsConnected = true;
-            WebClient->set_timeout(50);
- 
-            while(clientIsConnected) {
-                switch(WebClient->recv(WebBuffer, 1023)) {
-                    case 0:
-                        //printf("recieved buffer is empty.\n\r");
-                        clientIsConnected = false;
-                        break;
-                    case -1:
-                        //printf("failed to read data from client.\n\r");
-                        clientIsConnected = false;
-                        break;
-                    default:
-                        //printf("Recieved Data: %d\n\r\n\r%.*s\n\r",strlen(WebBuffer),strlen(WebBuffer),WebBuffer);
-                        if(WebBuffer[0] == 'G' && WebBuffer[1] == 'E' && WebBuffer[2] == 'T' ) {
-                            //spezza la stringa nei 3 token
-                            //una stringa GET somiglierà a "GET /path HTTP1.1"
-                            // il secondo pezzo è quello che serve a noi
-                            char* pString = WebBuffer;
-                            char* pField;
-                            char* pFields[2];
-                            char empty[1] = {0};
-    
-                            for(int i=0; i<2; i++){
-                                pField = strtok(pString, " ");
- 
-                                if(pField != NULL){
-                                    pFields[i] = pField;
-                                } else {
-                                    pFields[i] = empty;
-                                }
- 
-                                pString = NULL; //to make strtok continue parsing the next field rather than start again on the original string (see strtok documentation for more details)
-                            }
-
-                            char echoHeader[256] = {};
-                            //sprintf(echoHeader,"HTTP/1.1 200 OK\n\rContent-Length: %d\n\rContent-Type: text\n\rConnection: Close\n\r\n\r",strlen(WebBuffer));
-                            sprintf(echoHeader,"HTTP/1.1 200 OK\r\nContent-Type: text; charset=UTF-8\r\nHost: 192.168.0.22:80\r\nConnection: Close\r\n\r\n");
-                            WebClient->send(echoHeader,strlen(echoHeader));
-
-                            if(strcmp(pFields[1],"/") == 0 ) {
-                                //printf("GET pagina Home\r\n");
-                                //setup http response header & data
-                                sprintf(WebBuffer,"<head><title>NATPC Cupola</title></head>");
-                                WebClient->send(WebBuffer,strlen(WebBuffer));
-                                sprintf(WebBuffer,"<body bgcolor=\"#0099ff\"><center><h1>Automazione Cupola NATPC\r\n<br></h1>Posizione cupola: %d\n\r<br>Posizione Encoder: %d\r\n",DomePosition,EncoderPosition);
-                                WebClient->send(WebBuffer,strlen(WebBuffer));
-                                sprintf(WebBuffer,"<br>Azimut Telescopio: %d\r\n</center></body>",TelescopePosition);
-                                WebClient->send(WebBuffer,strlen(WebBuffer));
-                                sprintf(WebBuffer,"<br>Altezza Telescopio: %d\r\n</center></body>",TelescopeAlt);
-                                WebClient->send(WebBuffer,strlen(WebBuffer));
-                            }
-                            //dati per app tablet
-                            if (strcmp(pFields[1],"/GetData.php") == 0 ){
-                                int TpAz;
-                                int TpAlt;
-                                if (HostLinkOk == 1){
-                                    TpAz = TelescopePosition;
-                                    TpAlt = TelescopeAlt;
-                                } else {
-                                    TpAz = 999;
-                                    TpAlt = 0;
-                                };
-                                sprintf(WebBuffer,"{ \"AzTelescopio\":%d , \"AltTelescopio\":%d , \"PosCupola\":%d , \"Oltrecorsa\":%d , \"Movimento\":%d}\n",TpAz,TpAlt,DomePosition,EncoderPosition/360,\
-                                    DomeMotion == 1 || DomeManMotion == 1 ? 1 : 0);
-                                WebClient->send(WebBuffer,strlen(WebBuffer));
-                            }
-                            //centra la cupola sul telescopio
-                            //ma solo se il link con il tlescopio è ok
-                            if (strcmp(pFields[1],"/center") == 0 && HostLinkOk == 1){
-                                DomeMoveStart(TelescopePosition,Rollover);
-                            }
-                            //Start Movimento manuale orario
-                            if (strcmp(pFields[1],"/cwon") == 0 ){
-                                DomeManStart(Cw);
-                            }
-                            if (strcmp(pFields[1],"/ccwon") == 0 ){
-                                DomeManStart(Ccw);
-                            }
-                            if (strcmp(pFields[1],"/moveoff") == 0 ){
-                                DomeMoveStop(); //DomeManStop();
-                            }
-                            
-                            clientIsConnected = false;
-                            //printf("echo back done.\n\r");
-                        }
-                        break;
-                }
-            }
-            //printf("chiusura connessione\n\r");
-            WebClient->close();
-        }
-    }
-        
 }
 
 //routine in arrivo dall'interrupt seriale ricezione

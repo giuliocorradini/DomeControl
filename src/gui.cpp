@@ -743,28 +743,6 @@ void GuiEncLinkShow(int Ok){
     
 }
 
-//mostra stato link host
-void GuiHostLinkShow(int Ok){
-    static uint8_t LastState = 0;
-
-    if (Ok == LinkRedraw)
-        Ok = (int) LastState;
-    
-    if (CurrentPage == 0){
-        if (Ok == 1){
-            LCD.fillRect(221, 238, 18, 80, bianco);
-            //277 e' il centro della finestrella
-            LCD.graph_text("host OK",226,256,nero);
-        } else {
-            LCD.fillRect(221, 238, 18, 80, nero);
-            LCD.graph_text("host DOWN",226,250,bianco);        
-        };
-    };
-    LastState = (uint8_t) Ok;
-    
-}
-
-
 //Mostra stato della connessione MQTT col broker
 void GuiBrokerLinkShow(int Ok) {
     static uint8_t LastState = 0;

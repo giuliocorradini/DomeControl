@@ -4,7 +4,6 @@ void ScreenUpdate(void);
 
 void TelescopeDrawUpdate(int posizione);
 
-void GuiHostLinkShow(int Ok);
 void GuiEncLinkShow(int Ok);
 void GuiBrokerLinkShow(int Ok);
 
