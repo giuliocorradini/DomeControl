@@ -6,6 +6,7 @@
 #include "gui.h"
 #include "WIZnetInterface.h"
 #include "config.h"
+#include "remote/remote.h"
 
 BufferedSerial Pc(USBTX,USBRX);
 
@@ -141,11 +142,7 @@ void IoMain(void){
     //ogni secondo
     if (CycleCounter == 100){
         //trasmetti la quota attuale verso il broker
-        SrvBufPtr = SrvRxBuffer;
-        SrvBufPtr += sprintf(SrvBufPtr,"RP%d ",EncoderPosition);     //NB i due spazi dietro il %d verranno 'divorati' dal numero a 2 e tre cifre !
-        *SrvBufPtr++ = ' ';
-        SrvBufPtr += sprintf(SrvBufPtr,"DP%d\n",DomePosition);
-        //TODO: send here to broker
+        Remote::telescope_position.try_put(&DomePosition);
         CycleCounter = 0;
     };
 

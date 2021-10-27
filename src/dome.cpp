@@ -3,7 +3,6 @@
 #include "i2c.h"
 #include "eerom.h"
 #include "gui.h"
-#include "remote/remote.h"
 
 int EncoderPosition = 0;    //posizione attuale cupola in impulsi encoder assoluti 
 int QuotaParcheggio = 0;    //quota cui parcheggiare la cupola in impulsi encoder
@@ -60,9 +59,6 @@ void DomeMain(void){
                 DomeMoveStop();
         };
     };
-
-    //TODO: Notifica il modulo MQTT della posizione corrente
-    Remote::telescope_position.try_put(&TelescopePosition); //TODO: check freq. since it's done every loop
 
     //Controllo la posta per eseguire nuovi comandi dal modulo MQTT
     using namespace Dome;
