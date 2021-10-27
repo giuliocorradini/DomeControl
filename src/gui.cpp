@@ -4,6 +4,7 @@
 #include "io.h"
 #include "dome.h"
 #include "touch.h"
+#include "remote/remote.h"
 
 //ingresso analogico carico motore
 AnalogIn LoadIn(A2);
@@ -175,6 +176,9 @@ void Page0Show() {
     static uint32_t LoadMetAcc = 0;
     int tmp;    //usata per scartare la prima lettura ADC
 
+    if(!Remote::BrokerStatus.empty())
+        update = 1;
+
     if (update) {
         LCD.clearScreen();
         //pulsanti sottomenu per pagina 0
@@ -194,8 +198,15 @@ void Page0Show() {
 
         LCD.Rect(195,237,81,19,1);  //finestrella link encoder
         GuiEncLinkShow(LinkRedraw);
+
+        int *broker_status;
+        if(Remote::BrokerStatus.try_get(&broker_status)) {
+            GuiBrokerLinkShow(*broker_status);
+        } else {
+            GuiBrokerLinkShow(LinkRedraw);
+        }
         LCD.Rect(220,237,81,19,1);  //finestrella link host
-        GuiHostLinkShow(LinkRedraw);
+        
         LCD.Rect(3,6,67,10,1);  //finestrella power meter
         LCD.graph_text("carico",15,22,nero);
         LCD.Rect(3,157,73,10,1);    //finestrella monitor oltrecorsa
@@ -753,6 +764,26 @@ void GuiHostLinkShow(int Ok){
     
 }
 
+
+//Mostra stato della connessione MQTT col broker
+void GuiBrokerLinkShow(int Ok) {
+    static uint8_t LastState = 0;
+
+    if (Ok == LinkRedraw)
+        Ok = (int) LastState;
+
+    if (CurrentPage == 0){
+        if (Ok == 1){
+            LCD.fillRect(221, 238, 18, 80, bianco);
+            //277 e' il centro della finestrella
+            LCD.graph_text("broker OK",226,250,nero);
+        } else {
+            LCD.fillRect(221, 238, 18, 80, nero);
+            LCD.graph_text("broker DOWN",226,245,bianco);        
+        };
+    };
+    LastState = (uint8_t) Ok;
+}
 
 //al fermo cupola ripristina le scritte CENTRA o PARCHEGGIA sui pulsanti
 //richiamata da domeStop in dome.cpp

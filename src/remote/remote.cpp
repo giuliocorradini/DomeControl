@@ -11,6 +11,7 @@ using namespace std;
 
 namespace Remote {
 Queue<int, 10> telescope_position;
+Queue<int, 10> BrokerStatus;
 void init() {
     //Prepare MQTT subscriptions
     MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
@@ -76,6 +77,9 @@ void thread_routine() {
 
     int conn_status;
 
+    int broker_status;
+    BrokerStatus.try_put(&(broker_status = 1)); //assign 1 to broker_status and get its pointer &
+
     do {
         conn_status = MQTTController::yield(1000);
         if(conn_status == MQTT::FAILURE) {
@@ -90,6 +94,8 @@ void thread_routine() {
         }
 
     } while(conn_status == MQTT::SUCCESS);
+
+    BrokerStatus.try_put(&(broker_status = 0));
 
     //TODO: reconnect to MQTT broker
     

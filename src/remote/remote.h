@@ -14,4 +14,5 @@ namespace Remote {
     void thread_routine();
 
     extern Queue<int, 10> telescope_position;
+    extern Queue<int, 10> BrokerStatus;
 };
