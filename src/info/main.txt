@@ -1,6 +1,21 @@
-all'avvio iscriviamo su 
+all'avvio ci iscriviamo su 
 t1/telescopio/az per leggere AZ attuale
 t1/cupola/pos dove pubblichiamo la posizione attuale in gradi ogni secondo
 t1/cupola/cmd per ricevere comandi dal tablet
-    cmd puo essere: centra insegui noinsegui
+    cmd puo essere: Centra Insegui NoInsegui Stop
 
+t1/cupola/status
+    quando il controller cambia stato lo scrive qui
+    stringa leggibile: Tracking[On|Off]     Moving[On|Off]              
+                                            (sto pilotando le uscite)
+
+
+controllare connessione al broker
+
+il comando insegui avvia un movimento in rollover (per centrare) e poi in tracking
+
+controllo del movimento del telescopio: se supero una certa velocità stacco l'inseguimento
+
+se mando un comando manuale
+
+calcolo della rampa
