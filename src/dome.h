@@ -42,7 +42,7 @@ namespace Dome {
     };
 
     namespace API {
-        enum cmd_actions {CENTER, TRACK, NO_TRACK};
+        enum cmd_actions {CENTER, TRACK, NO_TRACK, STOP};
         struct Command {
             int                 azimuth;
             enum cmd_actions    action;

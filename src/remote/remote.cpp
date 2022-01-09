@@ -2,6 +2,7 @@
 #include "string.h"
 #include "mbed.h"
 #include "dome.h"
+#include "gui.h"
 #include "config.h"
 #include "mbed_debug.h"
 #include "mqtt/mqtt.h"
@@ -25,6 +26,7 @@ void init() {
         if(sscanf((char *)msg.message.payload, "%d", &azimuth)) {
             azimuth = azimuth > 0 ? (azimuth <= 90 ? azimuth : 90) : 0; //Clamp in [0, 90] without branching
             TelescopePosition = azimuth;
+            TelescopeDrawUpdate(azimuth);
         } else {
             debug("[MQTT] Error while parsing telescope azimuth");
         }
@@ -54,12 +56,14 @@ void init() {
 
         API::cmd_actions action;
 
-        if(strncmp(command_str, "centra", 6) == 0) {
+        if(strncmp(command_str, "Centra", 6) == 0) {
             action = API::CENTER;
-        } else if (strncmp(command_str, "insegui", 7) == 0) {
+        } else if (strncmp(command_str, "Insegui", 7) == 0) {
             action = API::TRACK;
-        } else if (strncmp(command_str, "no_insegui", 10) == 0) {
+        } else if (strncmp(command_str, "NoInsegui", 10) == 0) {
             action = API::NO_TRACK;
+        } else if (strncmp(command_str, "Stop", 4) == 0) {
+            action = API::STOP;
         } else {
             debug("[MQTT] Unrecognised command received\n");
             return;

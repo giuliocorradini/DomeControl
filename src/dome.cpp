@@ -75,6 +75,7 @@ void DomeMain(void){
             case API::TRACK:
                 DomeMoveStart(cmd->azimuth, Tracking);
                 break;
+            case API::STOP:
             case API::NO_TRACK:
                 DomeMoveStop();
                 break;
