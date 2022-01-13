@@ -5,7 +5,7 @@
 #include "io.h"
 #include "dome.h"
 #include "i2c.h"
-#include "remote/remote.h"
+#include "mqtt.h"
 
 Ticker tick;
  
@@ -28,7 +28,7 @@ int main() {
 
     /* setup remote connections (MQTT) */
     remote_conn_thread.start(callback(
-        Remote::thread_routine
+        Remote::mqtt_thread
     ));
 
     tick.attach(&timeout, 10ms);

@@ -6,7 +6,7 @@
 #include "gui.h"
 #include "WIZnetInterface.h"
 #include "config.h"
-#include "remote/remote.h"
+#include "mqtt.h"
 
 BufferedSerial Pc(USBTX,USBRX);
 
@@ -142,7 +142,9 @@ void IoMain(void){
     //ogni secondo
     if (CycleCounter == 100){
         //trasmetti la quota attuale verso il broker
-        Remote::telescope_position.try_put(&DomePosition);
+        char dome_pos_str[8];
+        sprintf(dome_pos_str, "%d", DomePosition);
+        MQTTController::publish("T1/cupola/pos", dome_pos_str, true);
         CycleCounter = 0;
     };
 

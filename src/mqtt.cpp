@@ -1,6 +1,6 @@
 #include "mbed.h"
 #include "string.h"
-#include "mqtt/mqtt.h"
+#include "mqtt.h"
 #include "MQTTClient.h"
 #include "MQTTSocket.h"
 #include "io.h"
@@ -57,4 +57,39 @@ int yield(int wait_time) {
     return client->yield(wait_time);
 }
 
+}
+
+
+#include "config.h"
+#include "mbed_debug.h"
+
+
+namespace Remote {
+
+void init() {
+    //Prepare MQTT subscriptions
+    MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
+    debug("[remote] Initialised MQTT client\n");
+}
+
+Queue<int, 10> BrokerStatus;
+void mqtt_thread() {
+    init();
+
+    int conn_status;
+
+    int broker_status;
+    BrokerStatus.try_put(&(broker_status = 1)); //assign 1 to broker_status and get its pointer &
+
+    do {
+        conn_status = MQTTController::yield(1000);
+        if(conn_status == MQTT::FAILURE) {
+            debug("[MQTT] Error: disconnected from broker");
+        }
+    } while(conn_status == MQTT::SUCCESS);
+
+    BrokerStatus.try_put(&(broker_status = 0));
+
+    //TODO: reconnect to MQTT broker
+}
 }

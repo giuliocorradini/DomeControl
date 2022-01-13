@@ -3,6 +3,7 @@
 #include "i2c.h"
 #include "eerom.h"
 #include "gui.h"
+#include "mqtt.h"
 
 int EncoderPosition = 0;    //posizione attuale cupola in impulsi encoder assoluti 
 int QuotaParcheggio = 0;    //quota cui parcheggiare la cupola in impulsi encoder
@@ -19,6 +20,7 @@ int DomeShiftZero =0;
 int StopRampPulses = 0;     //quanti impulsi impiega la cupola a fermarsi dalla velocità massima
 int DomeManMotion = 0;      //movimento manuale in corso
 
+bool isTracking = false;
 
 DigitalInOut CwOut(PA_6,PIN_OUTPUT,PullNone,0);
 DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
@@ -43,6 +45,8 @@ void DomeInit(void) {
     DomeShiftZero = (DomeOneRotPulses * 2) - 18000;      //shift posizione = metà encoder così a centro encoder avremo posizione = 0 quando verra' reiteratamente ridotto di 12500 , nota che l'algo vuole solo numeri positivi
                                 //dato che ne ricaverà un numero 0/360, una while sottrarrà + volte 12500 fino ad essere 0/12500
     StopRampPulses = 300;                 //impulsi di rampa frenatura
+
+    BindMqttCallbacks();
 }
 
 //richiamato ciclicamente da Main
@@ -73,10 +77,12 @@ void DomeMain(void){
                 DomeMoveStart(cmd->azimuth, Rollover);
                 break;
             case API::TRACK:
+                isTracking = true;
                 DomeMoveStart(cmd->azimuth, Tracking);
                 break;
             case API::STOP:
             case API::NO_TRACK:
+                isTracking = false;
                 DomeMoveStop();
                 break;
         }
@@ -267,4 +273,99 @@ void DomeManStart(int dir) {
 void DomeManStop(void) {
     if (DomeManMotion == 1)
         DomeMoveStop();
+}
+
+
+//Possibili stati della cupola
+enum status_t {
+    TrackingOff = 1 << 0,
+    TrackingOn  = 1 << 1,
+    NotMoving   = 1 << 2,
+    Moving      = 1 << 3
+};
+
+//Codifica lo stato corrente della cupola
+status_t encode_status() {
+    using namespace Remote;
+    int s = 0;
+
+    s |= (isTracking) ? TrackingOn : TrackingOff;
+
+    if(DomeMotion || DomeManMotion)
+        s |= Moving;
+    else if(!DomeMotion && !DomeManMotion)
+        s |= NotMoving;
+
+    return (status_t)s;
+}
+
+Queue<int, 10> telescope_position;
+
+/*  
+ *  This function binds callbacks with the MQTT client for required subscription
+ *  Right now those functions are enabled:
+ *      - T1/telescopio/az: azimuth update from mount controller
+ *      - T1/telescopio/alt: receive current altitude from mount controller
+ *      - T1/cupola/cmd: receive control commands
+ * 
+ *  MQTT Client initialisation should already be done when calling this function
+ *  (you may start Remote::mqtt_thread)
+ */
+void BindMqttCallbacks() {
+    //Receive telescope coordinates
+    MQTTController::subscribe("T1/telescopio/az", [](MQTT::MessageData &msg) {
+        debug("[MQTT] Received telescope azimuth update\n");
+
+        int azimuth;
+        if(sscanf((char *)msg.message.payload, "%d", &azimuth)) {
+            azimuth = azimuth > 0 ? (azimuth <= 90 ? azimuth : 90) : 0; //Clamp in [0, 90] without branching
+            TelescopePosition = azimuth;
+            TelescopeDrawUpdate(azimuth);
+        } else {
+            debug("[MQTT] Error while parsing telescope azimuth");
+        }
+        
+    });
+
+    MQTTController::subscribe("T1/telescopio/alt", [](MQTT::MessageData &msg) {
+        debug("[MQTT] Received telescope altitude update\n");
+
+        int altitude;
+        if(sscanf((char *)msg.message.payload, "%d", &altitude)) {
+            altitude = altitude > 0 ? (altitude <= 90 ? altitude : 90) : 0; //Clamp in [0, 90] without branching
+            TelescopeAlt = altitude;    //non thread-safe!
+        } else {
+            debug("[MQTT] Error while parsing telescope altitude");
+        }
+        
+    });
+
+    //Commands
+    MQTTController::subscribe("T1/cupola/cmd", [](MQTT::MessageData &msg) {
+        debug("[MQTT] Received command\n");
+
+        char *command_str = (char *)msg.message.payload;
+
+        using namespace Dome;
+
+        API::cmd_actions action;
+
+        if(strncmp(command_str, "Centra", 6) == 0) {
+            action = API::CENTER;
+        } else if (strncmp(command_str, "Insegui", 7) == 0) {
+            action = API::TRACK;
+        } else if (strncmp(command_str, "NoInsegui", 10) == 0) {
+            action = API::NO_TRACK;
+        } else if (strncmp(command_str, "Stop", 4) == 0) {
+            action = API::STOP;
+        } else {
+            debug("[MQTT] Unrecognised command received\n");
+            return;
+        }
+
+        API::Command *cmd = API::command_queue.alloc();
+        cmd->action = action;
+        API::command_queue.put(cmd);
+        debug("[remote] Enqueued command\n");
+    });
 }

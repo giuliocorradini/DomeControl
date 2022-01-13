@@ -1,7 +1,8 @@
 /*
  *  mqtt.h
  *
- *  MQTT remote control for dome
+ *  Provides a global unique MQTT client through the MQTTController namespace.
+ *  For higher level usage you should use functions from the Remtoe namespace.
  *  DomeControl - (C) 2021 Osservatorio di Cavezzo 
  */
 
@@ -10,9 +11,10 @@
 #include "mbed.h"
 #include "MQTTClient.h"
 
+//  Low level setup of MQTT client
 namespace MQTTController {
     // Creates an MQTTClient and connects to a broker
-    void init(char *broker);
+    void init(char *broker_hostname);
     void end();
 
     void publish(const char *topic, const char *msg, int n, bool retain = false);
@@ -22,4 +24,11 @@ namespace MQTTController {
     void subscribe(const char *topic, MessageHandler_t callback);
 
     int yield(int wait_time);
+};
+
+namespace Remote {
+    //  Handles connection with broker and restarts it automatically if it goes down
+    void mqtt_thread();
+
+    extern Queue<int, 10> BrokerStatus;
 };

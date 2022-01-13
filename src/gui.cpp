@@ -4,7 +4,7 @@
 #include "io.h"
 #include "dome.h"
 #include "touch.h"
-#include "remote/remote.h"
+#include "mqtt.h"
 
 //ingresso analogico carico motore
 AnalogIn LoadIn(A2);
