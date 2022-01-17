@@ -318,7 +318,7 @@ void BindMqttCallbacks() {
 
         int azimuth;
         if(sscanf((char *)msg.message.payload, "%d", &azimuth)) {
-            azimuth = azimuth > 0 ? (azimuth <= 90 ? azimuth : 90) : 0; //Clamp in [0, 90] without branching
+            azimuth = azimuth > 0 ? (azimuth < 360 ? azimuth : 359) : 0; //Clamp in [0, 360) without branching
             TelescopePosition = azimuth;
             TelescopeDrawUpdate(azimuth);
         } else {
