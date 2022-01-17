@@ -22,6 +22,8 @@ int DomeManMotion = 0;      //movimento manuale in corso
 
 DigitalInOut CwOut(PA_6,PIN_OUTPUT,PullNone,0);
 DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
+DigitalInOut CwTrack(PA_8,PIN_OUTPUT,PullNone,0);       //movimento lento di inseguimento
+
 
 namespace Dome::API {
     Mail<Command, 10> command_queue;
@@ -102,6 +104,7 @@ void DomeParkSave(void){
   se Absolute posiziona alla quota encoder assoluta -360/+360
   se Rollover trova il percorso piu breve per fare 0/360
   se Tracking posiziona alla quota assoluta ma non muove in caso di overtravel limiti encoder
+    inoltre muove la cupola lentamente per ridurre gli errori di posizionamento
   ritorna 0 se non ha mosso perchè già sul target
   1 se movimento avviato regolarmente
   -1 se impossibile (tracking fuori limiti)*/
@@ -181,7 +184,7 @@ int DomeMoveStart(int target, int type) {
         
 
     //avvia il movimento necessario
-    if (MotionStart(moto) == -1)
+    if (MotionStart(moto, type) == -1)
         return 0;     //esci se non muoviamo
 
     DomeMotion = 1;
@@ -195,7 +198,7 @@ void DomePark(void){
 
     TargetDiff = QuotaParcheggio - EncoderPosition;   //distanza da percorrere
 
-    if (MotionStart(TargetDiff) == -1)
+    if (MotionStart(TargetDiff, Absolute) == -1)
         return;
         
     DomeParking = 1;
@@ -206,14 +209,14 @@ void DomePark(void){
 //avvia il movimento in base alla quota incrementale passata in impulsi
 //tiene conto delle rampe
 //torna -1 se non ha avviato il movimento
-int MotionStart( int Dist2Go ){
+int MotionStart( int Dist2Go, int type){
     //usciamo se non dobbiamo fare nulla
     if (Dist2Go == 0)
         return -1;
 
     DomeAbsTarget = EncoderPosition + Dist2Go;
-        
-    if (Dist2Go > 0){
+    
+    if (Dist2Go > 0 && type != Tracking ){
         CwOut.write(1);     //avvia il movimento +
         MemDir = Cw;
         if (Dist2Go < (StopRampPulses *2))
@@ -221,7 +224,7 @@ int MotionStart( int Dist2Go ){
         else
             DomeAbsTarget -= StopRampPulses;
     };
-    if (Dist2Go < 0){
+    if (Dist2Go < 0 && type != Tracking ){
         CcwOut.write(1);    //avvia il movimento -
         MemDir = Ccw;
         Dist2Go *= -1;
@@ -230,6 +233,15 @@ int MotionStart( int Dist2Go ){
         else
             DomeAbsTarget += StopRampPulses;
     };
+    if (Dist2Go > 0 && type == Tracking ){
+        CwTrack.write(1);     //avvia il movimento lento +
+        MemDir = Cw;
+        //if (Dist2Go < (StopRampPulses *2))
+        //    DomeAbsTarget -= Dist2Go /2;
+        //else
+        //    DomeAbsTarget -= StopRampPulses;
+    };
+
 
     return 1;    
 }
@@ -243,6 +255,7 @@ void DomeMoveStop(void) {
     DomeManMotion = 0;
     CwOut.write(0);
     CcwOut.write(0);
+    CwTrack.write(0);
     MemDir = 0;
     GuiPage0BtnRestore();       //toglie eventuali pulsanti FERMA
 }

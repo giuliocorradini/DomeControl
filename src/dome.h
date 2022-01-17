@@ -31,7 +31,7 @@ void DomeMain(void);
 int DomeMoveStart(int target, int type);
 void DomeMoveStop(void);
 void DomePark(void);
-int MotionStart( int Dist2Go );
+int MotionStart( int Dist2Go, int type );
 void DomeManStart(int dir);
 void DomeManStop(void);
 
