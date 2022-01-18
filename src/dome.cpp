@@ -83,9 +83,9 @@ void DomeMain(void){
 
     if(cmd = command_queue.try_get()) { //Leggo l'ultimo comando
 
-        debug("[dome] Received command %d\n", cmd->action);
+        debug("[dome] Received command %d\n", *cmd);
 
-        switch(cmd->action) {
+        switch(*cmd) {
             case CENTER:
                 movement_process_queue.try_put((int *)Rollover);
                 break;
@@ -335,10 +335,10 @@ Queue<int, 10> telescope_position;
  *  Manda il comando ricevuto da MQTT (Track, Center, Stop etc.) alla coda
  *  di processamento che DomeMain legge a ogni iterazione.
  */
-void PassReceivedCommandOn(Dome::API::cmd_actions action) {
+void PassReceivedCommandOn(Dome::API::Command action) {
     using namespace Dome::API;
     Command *cmd = command_queue.alloc();
-    cmd->action = action;
+    *cmd = action;
     command_queue.put(cmd);
 }
 
@@ -388,8 +388,7 @@ void BindMqttCallbacks() {
         char *command_str = (char *)msg.message.payload;
 
         using namespace Dome::API;
-
-        cmd_actions action;
+        Command action;
 
         if(strncmp(command_str, "Centra", 6) == 0) {
             action = CENTER;

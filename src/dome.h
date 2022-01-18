@@ -42,11 +42,7 @@ namespace Dome {
     };
 
     namespace API {
-        enum cmd_actions {CENTER, TRACK, NO_TRACK, STOP};
-        struct Command {
-            int                 azimuth;
-            enum cmd_actions    action;
-        };
+        enum Command {CENTER, TRACK, NO_TRACK, STOP};
         extern Mail<Command, 10> command_queue;
         extern Mutex tele_pos_mutex;
     }
