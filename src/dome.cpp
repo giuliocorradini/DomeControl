@@ -30,6 +30,8 @@ namespace Dome::API {
     Mutex tele_pos_mutex;   //Lock this mutex when writing/reading TelescopeAlt and TelescopePosition
 }
 
+void BindMqttCallbacks();
+
 void DomeInit(void) {
 
     //recupera la quota di parcheggio cupola dalla eerom
@@ -49,6 +51,17 @@ void DomeInit(void) {
     BindMqttCallbacks();
 }
 
+// Coda per processare la lista dei movimenti che dobbiamo compiere (ad esempio centrare prima del tracking)
+Queue<int, 20> movement_process_queue;
+inline bool GetNextMovement(int &next) {
+    return movement_process_queue.try_get(reinterpret_cast<int**>(&next));
+}
+
+inline void EmptyProcessQueue() {
+    int *dump;
+    while(movement_process_queue.try_get(&dump));
+}
+
 //richiamato ciclicamente da Main
 void DomeMain(void){
  
@@ -65,30 +78,47 @@ void DomeMain(void){
     };
 
     //Controllo la posta per eseguire nuovi comandi dal modulo MQTT
-    using namespace Dome;
-    API::Command *cmd;
+    using namespace Dome::API;
+    Command *cmd;
 
-    if(cmd = API::command_queue.try_get()) { //Leggo l'ultimo comando
+    if(cmd = command_queue.try_get()) { //Leggo l'ultimo comando
 
         debug("[dome] Received command %d\n", cmd->action);
 
         switch(cmd->action) {
-            case API::CENTER:
-                DomeMoveStart(cmd->azimuth, Rollover);
+            case CENTER:
+                movement_process_queue.try_put((int *)Rollover);
                 break;
-            case API::TRACK:
+            case TRACK:
                 isTracking = true;
-                DomeMoveStart(cmd->azimuth, Tracking);
+                movement_process_queue.try_put((int *)Rollover);
+                movement_process_queue.try_put((int *)Tracking);
                 break;
-            case API::STOP:
-            case API::NO_TRACK:
+            case STOP:
+            case NO_TRACK:
                 isTracking = false;
                 DomeMoveStop();
+                //Pulisce la coda di processo
+                EmptyProcessQueue();
                 break;
         }
 
-        API::command_queue.free(cmd);    //Libero spazio nella cassetta postale
+        command_queue.free(cmd);    //Libero spazio nella cassetta postale
     }
+
+    //Se non stai facendo alcun movimento, avvia un nuovo movimento dalla coda di processo
+    // Controllando il flag DomeMotion, avviamo un nuovo movimento (con DomeMoveStart) solo quando
+    // ci siamo fermati. Ovvero quando abbiamo completato un movimento richeisto precedentemente,
+    // visto che DomeMoveStop resetta il flag, oppure se è arrivato il comando di DomeMoveStop.
+    int next_mov;
+    if(!DomeMotion && GetNextMovement(next_mov)) {
+        DomeMoveStart(TelescopePosition, next_mov);
+    }
+
+    //trasmetti la quota attuale al broker se questa cambia
+    /*char dome_pos_str[8];
+    sprintf(dome_pos_str, "%d", DomePosition);
+    MQTTController::publish("T1/cupola/pos", dome_pos_str, true);*/ //da implementare con tracciamento del valore di DomePosition nel tempo
 
 }
 
@@ -301,6 +331,17 @@ status_t encode_status() {
 
 Queue<int, 10> telescope_position;
 
+/*
+ *  Manda il comando ricevuto da MQTT (Track, Center, Stop etc.) alla coda
+ *  di processamento che DomeMain legge a ogni iterazione.
+ */
+void PassReceivedCommandOn(Dome::API::cmd_actions action) {
+    using namespace Dome::API;
+    Command *cmd = command_queue.alloc();
+    cmd->action = action;
+    command_queue.put(cmd);
+}
+
 /*  
  *  This function binds callbacks with the MQTT client for required subscription
  *  Right now those functions are enabled:
@@ -346,26 +387,24 @@ void BindMqttCallbacks() {
 
         char *command_str = (char *)msg.message.payload;
 
-        using namespace Dome;
+        using namespace Dome::API;
 
-        API::cmd_actions action;
+        cmd_actions action;
 
         if(strncmp(command_str, "Centra", 6) == 0) {
-            action = API::CENTER;
+            action = CENTER;
         } else if (strncmp(command_str, "Insegui", 7) == 0) {
-            action = API::TRACK;
+            action = TRACK;
         } else if (strncmp(command_str, "NoInsegui", 10) == 0) {
-            action = API::NO_TRACK;
+            action = NO_TRACK;
         } else if (strncmp(command_str, "Stop", 4) == 0) {
-            action = API::STOP;
+            action = STOP;
         } else {
             debug("[MQTT] Unrecognised command received\n");
             return;
         }
 
-        API::Command *cmd = API::command_queue.alloc();
-        cmd->action = action;
-        API::command_queue.put(cmd);
+        PassReceivedCommandOn(action);
         debug("[remote] Enqueued command\n");
     });
 }
