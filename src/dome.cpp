@@ -20,10 +20,14 @@ int DomeShiftZero =0;
 int StopRampPulses = 0;     //quanti impulsi impiega la cupola a fermarsi dalla velocità massima
 int DomeManMotion = 0;      //movimento manuale in corso
 
+bool isUserOverriding = false;  //true se l'utente sta pilotando la cupola manualmente coi pulsanti
 bool isTracking = false;
 
 DigitalInOut CwOut(PA_6,PIN_OUTPUT,PullNone,0);
 DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
+
+InterruptIn CwButton  (PA_7, PullNone);   // Clockwise movement button
+InterruptIn CcwButton (PA_8, PullNone);   // Counterclockwise movement button
 
 namespace Dome::API {
     Mail<Command, 10> command_queue;
@@ -31,6 +35,14 @@ namespace Dome::API {
 }
 
 void BindMqttCallbacks();
+
+void InputOverrideISR() {
+    isUserOverriding = true;
+}
+
+void InputOverrideStopISR() {
+    isUserOverriding = false;
+}
 
 void DomeInit(void) {
 
@@ -47,6 +59,13 @@ void DomeInit(void) {
     DomeShiftZero = (DomeOneRotPulses * 2) - 18000;      //shift posizione = metà encoder così a centro encoder avremo posizione = 0 quando verra' reiteratamente ridotto di 12500 , nota che l'algo vuole solo numeri positivi
                                 //dato che ne ricaverà un numero 0/360, una while sottrarrà + volte 12500 fino ad essere 0/12500
     StopRampPulses = 300;                 //impulsi di rampa frenatura
+
+    // Collega callback alle ISR dei pulsanti
+    CwButton.rise(InputOverrideISR);
+    CcwButton.rise(InputOverrideISR);
+
+    CwButton.fall(InputOverrideStopISR);
+    CcwButton.fall(InputOverrideStopISR);
 
     BindMqttCallbacks();
 }
@@ -81,7 +100,7 @@ void DomeMain(void){
     using namespace Dome::API;
     Command *cmd;
 
-    if(cmd = command_queue.try_get()) { //Leggo l'ultimo comando
+    if((cmd = command_queue.try_get())) { //Leggo l'ultimo comando
 
         debug("[dome] Received command %d\n", *cmd);
 
@@ -142,7 +161,7 @@ void DomeParkSave(void){
   1 se movimento avviato regolarmente
   -1 se impossibile (tracking fuori limiti)*/
 int DomeMoveStart(int target, int type) {
-    int moto;
+    int moto = 0;
     int PrevisioneMovimento;
     
     //accettiamo comandi di movimento solo se non ne stiamo già effettuando uno !
@@ -267,6 +286,13 @@ int MotionStart( int Dist2Go ){
             DomeAbsTarget += StopRampPulses;
     };
 
+    if(isUserOverriding) {
+        // se l'utente sta pilotando manualmente dai pulsanti ferma ogni movimento
+        DomeMoveStop();
+    }
+    // Eventuali spike di segnale dovuti a un .write(1) con un conseguente .write(0) vengono filtrati
+    // dall'hardware e comunque l'uscita è già a 1
+
     return 1;    
 }
 
@@ -337,9 +363,11 @@ Queue<int, 10> telescope_position;
  */
 void PassReceivedCommandOn(Dome::API::Command action) {
     using namespace Dome::API;
-    Command *cmd = command_queue.alloc();
-    *cmd = action;
-    command_queue.put(cmd);
+    Command *cmd = command_queue.try_alloc();
+    if(cmd) {
+        *cmd = action;
+        command_queue.put(cmd);
+    }
 }
 
 /*  
@@ -360,8 +388,8 @@ void BindMqttCallbacks() {
         int azimuth;
         if(sscanf((char *)msg.message.payload, "%d", &azimuth)) {
             azimuth = azimuth > 0 ? (azimuth < 360 ? azimuth : 359) : 0; //Clamp in [0, 360) without branching
-            TelescopePosition = azimuth;
-            TelescopeDrawUpdate(azimuth);
+            SAFE_TELESCOPE_UPDATE(TelescopePosition = azimuth);
+            TelescopeDrawUpdate(azimuth); //CHECK: non thread-safe, might cause bus collision issues
         } else {
             debug("[MQTT] Error while parsing telescope azimuth");
         }
@@ -374,7 +402,7 @@ void BindMqttCallbacks() {
         int altitude;
         if(sscanf((char *)msg.message.payload, "%d", &altitude)) {
             altitude = altitude > 0 ? (altitude <= 90 ? altitude : 90) : 0; //Clamp in [0, 90] without branching
-            TelescopeAlt = altitude;    //non thread-safe!
+            SAFE_TELESCOPE_UPDATE(TelescopeAlt = altitude);
         } else {
             debug("[MQTT] Error while parsing telescope altitude");
         }
