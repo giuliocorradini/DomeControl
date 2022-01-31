@@ -35,6 +35,9 @@ int MotionStart( int Dist2Go );
 void DomeManStart(int dir);
 void DomeManStop(void);
 
+const int TELESCOPE_POSITION_DELTA_THRESHOLD = 5;
+void TelescopePositionUpdate(int new_position);
+
 namespace Dome {
     namespace MovementDirection {
         const int Clockwise = Cw;

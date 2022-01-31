@@ -370,6 +370,19 @@ void PassReceivedCommandOn(Dome::API::Command action) {
     }
 }
 
+/*
+ *  Aggiorna il valore di TelescopePosition (in modo thread-safe) e se la nuova posizione differisce
+ *  da quella attuale di più di 5°, allora ferma ogni movimento automatico della cupola e stacca
+ *  l'inseguimento.
+ */
+void TelescopePositionUpdate(int new_pos) {
+    if(abs(new_pos - TelescopePosition) >= TELESCOPE_POSITION_DELTA_THRESHOLD) {
+        DomeMoveStop();
+    }
+
+    SAFE_TELESCOPE_UPDATE(TelescopePosition = new_pos);
+}
+
 /*  
  *  This function binds callbacks with the MQTT client for required subscription
  *  Right now those functions are enabled:
@@ -388,7 +401,7 @@ void BindMqttCallbacks() {
         int azimuth;
         if(sscanf((char *)msg.message.payload, "%d", &azimuth)) {
             azimuth = azimuth > 0 ? (azimuth < 360 ? azimuth : 359) : 0; //Clamp in [0, 360) without branching
-            SAFE_TELESCOPE_UPDATE(TelescopePosition = azimuth);
+            TelescopePositionUpdate(azimuth);
             TelescopeDrawUpdate(azimuth); //CHECK: non thread-safe, might cause bus collision issues
         } else {
             debug("[MQTT] Error while parsing telescope azimuth");
