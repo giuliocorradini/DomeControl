@@ -15,7 +15,7 @@ bool eerom_store(char *src, int n, int addr) {
     bool isThereAProblem = false;
 
     isThereAProblem |= i2c.write(I2cMemAddr, reinterpret_cast<char *>(&addr), 1, i2cNoEnd);
-    isThereAProblem |= i2c.read(I2cMemAddr, src, n, i2cEnd);
+    isThereAProblem |= i2c.write(I2cMemAddr, src, n, i2cEnd);
 
     return !isThereAProblem;
 }
