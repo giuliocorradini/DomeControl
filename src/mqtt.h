@@ -14,7 +14,7 @@
 //  Low level setup of MQTT client
 namespace MQTTController {
     // Creates an MQTTClient and connects to a broker
-    void init(char *broker_hostname);
+    bool init(char *broker_hostname);
     void end();
 
     void publish(const char *topic, const char *msg, int n, bool retain = false);
@@ -32,3 +32,5 @@ namespace Remote {
 
     extern Queue<int, 10> BrokerStatus;
 };
+
+void MqttInit();

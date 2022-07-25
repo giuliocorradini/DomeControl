@@ -1,24 +1,35 @@
 #include "mbed.h"
+#include <cstddef>
 #include "string.h"
 #include "mqtt.h"
 #include "MQTTClient.h"
 #include "MQTTSocket.h"
 #include "io.h"
 
-MQTT::Client<MQTTSocket, Countdown> *client;
-MQTTSocket *network;
+MQTT::Client<MQTTSocket, Countdown> *client = nullptr;
+MQTTSocket *network = nullptr;
 
 namespace MQTTController {
 
-void init(char *broker) {
-    network = new MQTTSocket(net::interfaces::eth0);
-    network->connect(broker, 1883);
-    client = new MQTT::Client<MQTTSocket, Countdown>(*network);
+bool init(char *broker) {
+    if(network == nullptr)
+        network = new MQTTSocket(net::interfaces::eth0);
+
+    int conn_status = network->connect(broker, 1883);
+    if(conn_status != NSAPI_ERROR_OK) {
+        debug("[MQTT] Could not establish connection with broker\n");
+        return false;
+    }
+
+    if(client == nullptr)
+        client = new MQTT::Client<MQTTSocket, Countdown>(*network);
 
     MQTTPacket_connectData connectOptions = MQTTPacket_connectData_initializer;
     connectOptions.keepAliveInterval = 400;
     connectOptions.cleansession = true;
     client->connect(connectOptions);
+
+    return true;
 }
 
 void end() {
@@ -31,6 +42,9 @@ void end() {
  *  Payload can be anything. Expected size in bytes.
  */
 void publish(const char *topic, const char *msg, int n, bool retain) {
+    if(!client)
+        return;
+
     using namespace MQTT;
     Message mqtt_msg = {
         .retained = retain,
@@ -50,10 +64,16 @@ void publish(const char *topic, const char* msg, bool retain) {
 }
 
 void subscribe(const char *topic, MessageHandler_t callback) {
+    if(!client)
+        return;
+    
     client->subscribe(topic, MQTT::QOS0, callback);
 }
 
 int yield(int wait_time) {
+    if(!client)
+        return -1;
+    
     return client->yield(wait_time);
 }
 
@@ -66,30 +86,36 @@ int yield(int wait_time) {
 
 namespace Remote {
 
-void init() {
-    //Prepare MQTT subscriptions
-    MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
-    debug("[remote] Initialised MQTT client\n");
-}
-
 Queue<int, 10> BrokerStatus;
+
 void mqtt_thread() {
-    init();
+    
+    while(true) {
+        if(!client || !client->isConnected())
+            MqttInit();
 
-    int conn_status;
+        int conn_status;
 
-    int broker_status;
-    BrokerStatus.try_put(&(broker_status = 1)); //assign 1 to broker_status and get its pointer &
+        int broker_status;
+        BrokerStatus.try_put(&(broker_status = 1)); //assign 1 to broker_status and get its pointer &
 
-    do {
-        conn_status = MQTTController::yield(1000);
-        if(conn_status == MQTT::FAILURE) {
-            debug("[MQTT] Error: disconnected from broker");
-        }
-    } while(conn_status == MQTT::SUCCESS);
+        do {
+            conn_status = MQTTController::yield(1000);
+            if(conn_status == MQTT::FAILURE) {
+                debug("[MQTT] Error: disconnected from broker\n");
+            }
+        } while(conn_status == MQTT::SUCCESS);
 
-    BrokerStatus.try_put(&(broker_status = 0));
+        BrokerStatus.try_put(&(broker_status = 0));
+    }
 
     //TODO: reconnect to MQTT broker
 }
+
+}
+
+void MqttInit() {
+    //Prepare MQTT subscriptions
+    debug("[remote] Trying to initialize broker connection\n");
+    MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
 }

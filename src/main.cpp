@@ -24,6 +24,7 @@ int main() {
     GuiInit();
     IoInit();
     TouchInit();    //touchscreen
+    MqttInit();
     DomeInit();     //cupola
 
     /* setup remote connections (MQTT) */
