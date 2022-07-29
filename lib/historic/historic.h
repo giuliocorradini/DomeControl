@@ -15,18 +15,23 @@ class Historic {
             last = 0;
         }
 
+        Historic(T initialVal) {
+            current = initialVal;
+            last = initialVal;
+        }
+
         operator T() {
             return current;
         }
 
-        Historic<T>& operator=(&T value) {
+        Historic<T>& operator=(T& value) {
             last = current;
             current = value;
 
-            return this;
+            return *this;
         }
 
-        T last() {
+        T get_last() {
             return last;
         }
 
