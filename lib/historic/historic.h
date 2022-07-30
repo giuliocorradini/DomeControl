@@ -36,7 +36,7 @@ class Historic {
         }
 
         bool has_changed() {
-            return current == last;
+            return current != last;
         }
 
     private:

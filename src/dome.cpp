@@ -4,10 +4,12 @@
 #include "eerom.h"
 #include "gui.h"
 #include "mqtt.h"
+#include "historic.h"
 
 int EncoderPosition = 0;    //posizione attuale cupola in impulsi encoder assoluti 
 int QuotaParcheggio = 0;    //quota cui parcheggiare la cupola in impulsi encoder
-int DomePosition = 0;       //posizione cupola 0/360 in gradi
+//int DomePosition = 0;       //posizione cupola 0/360 in gradi
+Historic<int> DomePosition(0);
 int DomeMotion = 0;         //flag di cupola in movimento
 int TelescopePosition = 0;  //posizione telescopio 0/360 in gradi
 int TelescopeAlt = 0;       //altezza telescopio
@@ -135,9 +137,12 @@ void DomeMain(void){
     }
 
     //trasmetti la quota attuale al broker se questa cambia
-    /*char dome_pos_str[8];
-    sprintf(dome_pos_str, "%d", DomePosition);
-    MQTTController::publish("T1/cupola/pos", dome_pos_str, true);*/ //da implementare con tracciamento del valore di DomePosition nel tempo
+    char dome_pos_str[8];
+
+    if(DomePosition.has_changed()) {
+        sprintf(dome_pos_str, "%d", DomePosition);
+        MQTTController::publish("T1/cupola/pos", dome_pos_str, true); //da implementare con tracciamento del valore di DomePosition nel tempo
+    }
 
 }
 
@@ -161,6 +166,8 @@ void DomeParkSave(void){
   1 se movimento avviato regolarmente
   -1 se impossibile (tracking fuori limiti)*/
 int DomeMoveStart(int target, int type) {
+    debug("[dome] Avviato un movimento in %d al target %d\n", type, target);
+
     int moto = 0;
     int PrevisioneMovimento;
     
@@ -299,6 +306,7 @@ int MotionStart( int Dist2Go ){
 
 //interrompe un movimento automatico della cupola
 void DomeMoveStop(void) {
+    debug("[dome] Movimento fermato\n");
     
     DomeMotion = 0;
     DomeParking = 0;

@@ -6,10 +6,11 @@
 #pragma once
 
 #include "mbed.h"
+#include "historic.h"
 
 extern int EncoderPosition;
 extern int QuotaParcheggio;
-extern int DomePosition;
+extern Historic<int> DomePosition;
 extern int DomeMotion;
 extern int DomeManMotion;
 extern int TelescopePosition;
