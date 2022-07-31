@@ -5,13 +5,14 @@
 #include "gui.h"
 #include "mqtt.h"
 #include "historic.h"
+#include <cstring>
 
 int EncoderPosition = 0;    //posizione attuale cupola in impulsi encoder assoluti 
 int QuotaParcheggio = 0;    //quota cui parcheggiare la cupola in impulsi encoder
 //int DomePosition = 0;       //posizione cupola 0/360 in gradi
 Historic<int> DomePosition(0);
 int DomeMotion = 0;         //flag di cupola in movimento
-int TelescopePosition = 0;  //posizione telescopio 0/360 in gradi
+Historic<int> TelescopePosition(0);  //posizione telescopio 0/360 in gradi
 int TelescopeAlt = 0;       //altezza telescopio
 int DomeParking = 0;        //flag di cupola in parcheggio
 int DomeAbsTarget = 0;      //target assoluto di movimento cupola in impulsi encoder
@@ -406,11 +407,14 @@ void BindMqttCallbacks() {
     MQTTController::subscribe("T1/telescopio/az", [](MQTT::MessageData &msg) {
         debug("[MQTT] Received telescope azimuth update\n");
 
+        char buffer[4];
+        strncpy(buffer, (char *)msg.message.payload, msg.message.payloadlen > 3 ? 3 : msg.message.payloadlen);
+
         int azimuth;
-        if(sscanf((char *)msg.message.payload, "%d", &azimuth)) {
+
+        if(sscanf(buffer, "%d", &azimuth)) {
             azimuth = azimuth > 0 ? (azimuth < 360 ? azimuth : 359) : 0; //Clamp in [0, 360) without branching
             TelescopePositionUpdate(azimuth);
-            TelescopeDrawUpdate(azimuth); //CHECK: non thread-safe, might cause bus collision issues
         } else {
             debug("[MQTT] Error while parsing telescope azimuth");
         }
@@ -420,8 +424,11 @@ void BindMqttCallbacks() {
     MQTTController::subscribe("T1/telescopio/alt", [](MQTT::MessageData &msg) {
         debug("[MQTT] Received telescope altitude update\n");
 
+        char buffer[4];
+        strncpy(buffer, (char *)msg.message.payload, msg.message.payloadlen > 2 ? 2 : msg.message.payloadlen);
+
         int altitude;
-        if(sscanf((char *)msg.message.payload, "%d", &altitude)) {
+        if(sscanf((char *)buffer, "%d", &altitude)) {
             altitude = altitude > 0 ? (altitude <= 90 ? altitude : 90) : 0; //Clamp in [0, 90] without branching
             SAFE_TELESCOPE_UPDATE(TelescopeAlt = altitude);
         } else {

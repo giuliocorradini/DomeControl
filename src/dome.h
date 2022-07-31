@@ -13,7 +13,7 @@ extern int QuotaParcheggio;
 extern Historic<int> DomePosition;
 extern int DomeMotion;
 extern int DomeManMotion;
-extern int TelescopePosition;
+extern Historic<int> TelescopePosition;
 extern int TelescopeAlt;
 extern int DomeParking;
 extern int DomeOneRotPulses;       //quanti impulsi encoder per giro di cupola

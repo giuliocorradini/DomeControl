@@ -181,6 +181,7 @@ void Page0Show() {
 
     if (update) {
         LCD.clearScreen();
+
         //pulsanti sottomenu per pagina 0
         ButtonDraw(0);
         
@@ -190,15 +191,16 @@ void Page0Show() {
         LCD.graph_text("E",118,19,1);
         LCD.graph_text("W",118,216,1);
 
-        //LCD.Rect(1,1,82,19,nero);  //finestrella posizione cupola
+        // Etichette dei dati di posizione di telescopio e cupola
         LCD.graph_text("cupola",214,6,nero);
-        //LCD.Rect(220,1,100,19,nero);  //finestrella posizione telescopio
         LCD.graph_text("telescopio Az",226,6,nero);
         LCD.graph_text("Alt",226,120,nero);
 
+        // Link con encoder
         LCD.Rect(195,237,81,19,1);  //finestrella link encoder
         GuiEncLinkShow(LinkRedraw);
 
+        // Link con broker
         int *broker_status;
         if(Remote::BrokerStatus.try_get(&broker_status)) {
             GuiBrokerLinkShow(*broker_status);
@@ -222,6 +224,10 @@ void Page0Show() {
         LCD.graph_text(buff,214,48,nero);
         prevang = DomePosition;
     };
+
+    if (TelescopePosition.is_changed()) {
+        TelescopeDrawUpdate(TelescopePosition);
+    }
 
     //aggiorniamo l'altezza telescopio se cambia
     if (TelescopeAlt != prevalt || update == 1){
@@ -753,13 +759,13 @@ void GuiBrokerLinkShow(int Ok) {
     if (CurrentPage == 0){
         if (Ok == 1){
             LCD.fillRect(221, 238, 18, 80, bianco);
-            //277 e' il centro della finestrella
             LCD.graph_text("broker OK",226,250,nero);
         } else {
             LCD.fillRect(221, 238, 18, 80, nero);
             LCD.graph_text("broker DOWN",226,245,bianco);        
         };
     };
+
     LastState = (uint8_t) Ok;
 }
 
