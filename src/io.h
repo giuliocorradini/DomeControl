@@ -1,17 +1,10 @@
+#pragma once
+
 #include "mbed.h"
 
 void IoInit(void);
 void IoMain(void);
 
-#define Manuale 0
-#define Automatico 1
-
-extern BufferedSerial Pc;
-
 namespace net::interfaces {
     inline NetworkInterface *eth0;
 }
-
-
-
-

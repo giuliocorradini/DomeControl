@@ -10,9 +10,9 @@
 int EncoderPosition = 0;    //posizione attuale cupola in impulsi encoder assoluti 
 int QuotaParcheggio = 0;    //quota cui parcheggiare la cupola in impulsi encoder
 //int DomePosition = 0;       //posizione cupola 0/360 in gradi
-Historic<int> DomePosition(0);
+Historic<int> DomePosition;
 int DomeMotion = 0;         //flag di cupola in movimento
-Historic<int> TelescopePosition(0);  //posizione telescopio 0/360 in gradi
+Historic<int> TelescopePosition;  //posizione telescopio 0/360 in gradi
 int TelescopeAlt = 0;       //altezza telescopio
 int DomeParking = 0;        //flag di cupola in parcheggio
 int DomeAbsTarget = 0;      //target assoluto di movimento cupola in impulsi encoder
@@ -140,9 +140,9 @@ void DomeMain(void){
     //trasmetti la quota attuale al broker se questa cambia
     char dome_pos_str[8];
 
-    if(DomePosition.has_changed()) {
+    if(DomePosition.is_changed()) {
         sprintf(dome_pos_str, "%d", DomePosition);
-        MQTTController::publish("T1/cupola/pos", dome_pos_str, true); //da implementare con tracciamento del valore di DomePosition nel tempo
+        MQTTController::publish("T1/cupola/pos", dome_pos_str, true); //TODO: la pubblicazione accoda il messaggio, non lo invia da questo thread
     }
 
 }
