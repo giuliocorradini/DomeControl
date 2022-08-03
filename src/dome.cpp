@@ -17,10 +17,10 @@ int TelescopeAlt = 0;       //altezza telescopio
 int DomeParking = 0;        //flag di cupola in parcheggio
 int DomeAbsTarget = 0;      //target assoluto di movimento cupola in impulsi encoder
 int temp;
-int DomeOneRotPulses;       //quanti impulsi encoder per giro di cupola
+int DomeOneRotPulses = 12500;       //quanti impulsi encoder per giro di cupola
 int MemDir = 0;             //memoria di direzione intrapresa
 int DomeShiftZero =0;
-int StopRampPulses = 0;     //quanti impulsi impiega la cupola a fermarsi dalla velocità massima
+int StopRampPulses = 300;     //quanti impulsi impiega la cupola a fermarsi dalla velocità massima
 int DomeManMotion = 0;      //movimento manuale in corso
 
 bool isUserOverriding = false;  //true se l'utente sta pilotando la cupola manualmente coi pulsanti
@@ -40,11 +40,11 @@ namespace Dome::API {
 void BindMqttCallbacks();
 
 void InputOverrideISR() {
-    isUserOverriding = true;
+    //isUserOverriding = true;
 }
 
 void InputOverrideStopISR() {
-    isUserOverriding = false;
+    //isUserOverriding = false;
 }
 
 void DomeInit(void) {
@@ -58,10 +58,8 @@ void DomeInit(void) {
     temp |= i2cmembuff[0];
     QuotaParcheggio = temp;
 
-    DomeOneRotPulses = 12500;        //impulsi per un giro di cupola
     DomeShiftZero = (DomeOneRotPulses * 2) - 18000;      //shift posizione = metà encoder così a centro encoder avremo posizione = 0 quando verra' reiteratamente ridotto di 12500 , nota che l'algo vuole solo numeri positivi
                                 //dato che ne ricaverà un numero 0/360, una while sottrarrà + volte 12500 fino ad essere 0/12500
-    StopRampPulses = 300;                 //impulsi di rampa frenatura
 
     // Collega callback alle ISR dei pulsanti
     CwButton.rise(InputOverrideISR);
@@ -88,15 +86,16 @@ inline void EmptyProcessQueue() {
 void DomeMain(void){
  
     //se siamo in movimento controlliamo l'arrivo in quota
-    if (DomeMotion == 1) {
-    
-        if (MemDir == Cw){
+    if (DomeMotion) {
+
+        if (MemDir == Cw) {
             if (EncoderPosition >= DomeAbsTarget)
                 DomeMoveStop();
         } else {
             if (EncoderPosition <= DomeAbsTarget)
                 DomeMoveStop();
         };
+
     };
 
     //Controllo la posta per eseguire nuovi comandi dal modulo MQTT
@@ -168,6 +167,7 @@ void DomeParkSave(void){
   -1 se impossibile (tracking fuori limiti)*/
 int DomeMoveStart(int target, int type) {
     debug("[dome] Avviato un movimento in %d al target %d\n", type, target);
+    debug("[dome] DomePosition=%d\n", DomePosition.get_current());
 
     int moto = 0;
     int PrevisioneMovimento;
@@ -193,12 +193,11 @@ int DomeMoveStart(int target, int type) {
         abbiamo poi due casistiche: se il moto da compiere e' positivo o negativo
         in quel caso dobbiamo sottrarre duepigredo o sommarlo a seconda...
         */
-        if (moto > 359 || moto < 359){
-            if (moto > 0)
-                moto -= 360;
-            else
-                moto += 360;
-        };
+        if (moto > 359)
+            moto -= 360;        
+        else if (moto < -359)
+            moto += 360;
+
         /* vecchio algoritmo if (moto > 180) 
             moto = 360 - target + DomePosition;
         if (moto < -180)
@@ -212,32 +211,39 @@ int DomeMoveStart(int target, int type) {
         break;
     };
 
+    debug("[dome] moto=%d\n", moto);
+
     //esce se non dobbiamo muovere
     if (moto == 0)
         return 0;    
 
     //converti il moto incrementale appena calcolato in impulsi encoder
+    // sto calcolando la seguente proporzione
+    // <Impulsi da fare per raggiungere target> : <Impulsi in un giro di cupola> = <moto> : 360
+    // che diventa <impulsi target> = <moto> * <Impulsi giro> / 360
     moto *= DomeOneRotPulses;
     moto /= 360;
+
+    //Adesso moto è sempre l'angolo relativo da percorrere per arrivare al target, ma espresso
+    //in impulsi dell'encoder
 
     /*fai una previsione sul target finale e controlla che non sia 
     finito oltre i limiti dell'encoder 0/36000
     questo per evitare disastrosi rollover
     con un po di tolleranza per tenere conto delle rampe di accelerazione poco precise
     */
-    PrevisioneMovimento = EncoderPosition + moto;
+    PrevisioneMovimento = EncoderPosition + moto;   //dove dovrei arrivare alla fine del movimento
+    debug("[dome] PrevisioneMovimento=%d, EncoderPosition=%d\n", PrevisioneMovimento, EncoderPosition);
     switch (type){
     case Rollover:
     case Absolute:
-        if (PrevisioneMovimento > 35000)
+        if (PrevisioneMovimento > 35000)    //35000 è la tolleranza per evitare i rollover
             moto -= DomeOneRotPulses;
-        if (PrevisioneMovimento < 1000)
+        if (PrevisioneMovimento < 1000)     //per evitare un "rollunder"
             moto += DomeOneRotPulses;
         break;
-    case Tracking:
-        if (PrevisioneMovimento > 35000)
-            return -1;
-        if (PrevisioneMovimento < 1000)
+    case Tracking:  //non abilitare il tracking se rischio il roll
+        if (PrevisioneMovimento > 35000 || PrevisioneMovimento < 1000)
             return -1;
         break;
     };

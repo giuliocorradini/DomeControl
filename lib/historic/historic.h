@@ -36,6 +36,10 @@ class Historic {
             return *this;
         }
 
+        T get_current() {
+            return current;
+        }
+
         T get_last() {
             return last;
         }
