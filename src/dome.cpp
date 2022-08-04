@@ -197,11 +197,7 @@ int DomeMoveStart(int target, int type) {
             moto -= 360;        
         else if (moto < -359)
             moto += 360;
-
-        /* vecchio algoritmo if (moto > 180) 
-            moto = 360 - target + DomePosition;
-        if (moto < -180)
-            moto = 360 + target - DomePosition;*/
+        
         break;
     case Absolute:
     case Tracking:
@@ -272,9 +268,16 @@ void DomePark(void){
     
 }
 
-//avvia il movimento in base alla quota incrementale passata in impulsi
-//tiene conto delle rampe
-//torna -1 se non ha avviato il movimento
+/*
+ *  Avvia il movimento pilotando le uscite ai pulsanti dell'inverter. Calcola la posizione
+ *  assoluta del target tenendo conto delle rampe di accelerazione e decelerazione.
+ *  
+ *  @param Dist2Go: la quota incrementale espressa come numero di impulsi dell'encoder
+ *  che rappresenta l'angolo relativo alla posizione corrente da percorrere.
+ *  Un angolo positivo indica un movimento orario, negativo antiorario.
+ * 
+ *  @return -1 se la distanza da percorrere è 0, altrimenti 1
+ */
 int MotionStart( int Dist2Go ){
     //usciamo se non dobbiamo fare nulla
     if (Dist2Go == 0)
@@ -303,6 +306,7 @@ int MotionStart( int Dist2Go ){
     if(isUserOverriding) {
         // se l'utente sta pilotando manualmente dai pulsanti ferma ogni movimento
         DomeMoveStop();
+        return -1;
     }
     // Eventuali spike di segnale dovuti a un .write(1) con un conseguente .write(0) vengono filtrati
     // dall'hardware e comunque l'uscita è già a 1
@@ -313,8 +317,6 @@ int MotionStart( int Dist2Go ){
 
 //interrompe un movimento automatico della cupola
 void DomeMoveStop(void) {
-    debug("[dome] Movimento fermato\n");
-    
     DomeMotion = 0;
     DomeParking = 0;
     DomeManMotion = 0;
@@ -322,6 +324,8 @@ void DomeMoveStop(void) {
     CcwOut.write(0);
     MemDir = 0;
     GuiPage0BtnRestore();       //toglie eventuali pulsanti FERMA
+    
+    debug("[dome] Movimento fermato\n");
 }
 
 //avvia un movimento manuale in orario o antiorario 
