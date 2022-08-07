@@ -225,7 +225,7 @@ void Page0Show() {
     };
 
     //aggiorniamo la posizione cupola in base a nuovo angolo o ad un aggiornamento schermo
-    if (DomePosition != prevang || update == 1){
+    if (DomePosition != prevang || update) {
         DomeDrawUpdate();
         LCD.fillRect(214,48,8,24,bianco);
         sprintf(buff,"%d\x7F", DomePosition);   // \x7f=127 cioe' ° nella nostra tabella
@@ -233,12 +233,12 @@ void Page0Show() {
         prevang = DomePosition;
     };
 
-    if (TelescopePosition.is_changed()) {
+    if (TelescopePosition.is_changed() || update) {
         TelescopeDrawUpdate(TelescopePosition);
     }
 
     //aggiorniamo l'altezza telescopio se cambia
-    if (TelescopeAlt != prevalt || update == 1){
+    if (TelescopeAlt != prevalt || update) {
         LCD.fillRect(226,148,8,18,bianco);
         sprintf(buff,"%d\x7F",TelescopeAlt);   // \x7f=127 cioe' ° nella nostra tabella
         LCD.graph_text(buff,226,148,nero);

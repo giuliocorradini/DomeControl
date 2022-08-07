@@ -91,7 +91,7 @@ void DomeMain(void){
     int next_mov;
  
     //se siamo in movimento controlliamo l'arrivo in quota
-    if (DomeMotion) {
+    if (DomeMotion || DomeParking) {
 
         if (MemDir == Cw) {
             if (EncoderPosition >= DomeAbsTarget)
