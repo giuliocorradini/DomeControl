@@ -31,6 +31,9 @@ bool CalibratingSlope = false;
 bool isUserOverriding = false;  //true se l'utente sta pilotando la cupola manualmente coi pulsanti
 bool isTracking = false;
 
+int TrackingStopAngle = 5;  //Angolo che determina se staccare l'inseguimento se dopo un aggiornamento (ogni secondo) della posizione
+                            //del telescopio, questo si è mosso di più dell'angolo
+
 DigitalInOut CwOut(PA_6,PIN_OUTPUT,PullNone,0);
 DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
 
@@ -53,6 +56,28 @@ void InputOverrideISR() {
 
 void InputOverrideStopISR() {
     //isUserOverriding = false;
+}
+
+/*
+ *  Calcola la distanza in termini assoluti tra due angoli della posizione del telescopio [0, 360]
+ *  tenendo in considerazione che potrei superare un giro completo della cupola muovendomi.
+ *  Se ad esempio passo da 355° a 5° mi sono mosso solo di 10°
+ */
+int AngularDelta(Historic<int> x) {
+    int more, less;
+
+    if(x.get_current() >= x.get_last()) {
+        more = x.get_current();
+        less = x.get_last();
+    } else {
+        more = x.get_last();
+        less = x.get_current();
+    }
+
+    int cwdelta = abs(more - less);
+    int ccwdelta = (360 - cwdelta);
+
+    return cwdelta < ccwdelta ? cwdelta : ccwdelta;
 }
 
 void DomeInit(void) {
@@ -88,6 +113,9 @@ inline void EmptyProcessQueue() {
 //richiamato ciclicamente da Main
 void DomeMain(void){
     int next_mov;
+
+    if(isTracking && AngularDelta(TelescopePosition) >= TrackingStopAngle)
+        DomeMoveStop();
  
     //se siamo in movimento controlliamo l'arrivo in quota
     if (DomeMotion || DomeParking) {
@@ -335,6 +363,7 @@ void DomeMoveStop(void) {
     DomeMotion = 0;
     DomeParking = 0;
     DomeManMotion = 0;
+    isTracking = false;
     CwOut.write(0);
     CcwOut.write(0);
     MemDir = 0;
