@@ -61,5 +61,5 @@ class Historic {
     private:
         T current;
         T last;
-        bool changed;
+        volatile bool changed;
 };
