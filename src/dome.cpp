@@ -1,6 +1,5 @@
 #include "dome.h"
 #include "mbed.h"
-#include "i2c.h"
 #include "eerom.h"
 #include "gui.h"
 #include "mqtt.h"
@@ -171,12 +170,7 @@ void DomeMain(void){
 void DomeParkSave(void){
 
     QuotaParcheggio = EncoderPosition;
-    i2cmembuff[0] = EeromParkLoc;              //questa eerom come primo byte vuole l'indirizzo di partenza a cui scrivere
-    temp = EncoderPosition;
-    i2cmembuff[1] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[2] = temp & 0xFF;
-    i2c.write(I2cMemAddr, i2cmembuff, 3, i2cEnd);
+    eerom_store((char *)&QuotaParcheggio, sizeof(int), EeromParkLoc);
 }
 
 /*avvia il movimento della cupola alla quota passata in gradi

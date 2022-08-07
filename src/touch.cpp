@@ -2,7 +2,6 @@
 #include "mbed.h"
 #include "lcd.h"
 #include "eerom.h"
-#include "i2c.h"
 
 //ingressi analogici lettura
 AnalogIn analog_row(A0);
@@ -29,52 +28,10 @@ void TouchInit(void){
     int temp;
 
     //recuperiamo i dati di calibrazione touchscreen dalla eerom
-
-    i2cmembuff[0] = EeromTouchLoc;              //indirizzo di partenza locazioni eerom
-    i2c.write(I2cMemAddr, i2cmembuff, 1, i2cNoEnd); //indirizza la locazione da leggere ma non manda lo stop
-    i2c.read(I2cMemAddr, i2cmembuff, 8, i2cEnd);
-
-    temp = i2cmembuff[3];
-    temp <<= 8;
-    temp |= i2cmembuff[2];
-    temp <<= 8;
-    temp |= i2cmembuff[1];
-    temp <<= 8;
-    temp |= i2cmembuff[0];
-    Settings.TouchYoffset = temp;
-
-    temp = i2cmembuff[7];
-    temp <<= 8;
-    temp |= i2cmembuff[6];
-    temp <<= 8;
-    temp |= i2cmembuff[5];
-    temp <<= 8;
-    temp |= i2cmembuff[4];
-    Settings.TouchYmax = temp;
-
-    i2cmembuff[0] = EeromTouchLoc + 8;
-    i2c.write(I2cMemAddr, i2cmembuff, 1, i2cNoEnd);
-    i2c.read(I2cMemAddr, i2cmembuff, 8, false);
-
-    temp = i2cmembuff[3];
-    temp <<= 8;
-    temp |= i2cmembuff[2];
-    temp <<= 8;
-    temp |= i2cmembuff[1];
-    temp <<= 8;
-    temp |= i2cmembuff[0];
-    Settings.TouchXoffset = temp;
-
-    temp = i2cmembuff[7];
-    temp <<= 8;
-    temp |= i2cmembuff[6];
-    temp <<= 8;
-    temp |= i2cmembuff[5];
-    temp <<= 8;
-    temp |= i2cmembuff[4];
-    Settings.TouchXmax = temp;
-
-
+    eerom_load((char *)&Settings.TouchYoffset, sizeof(int), EeromTouchLoc);
+    eerom_load((char *)&Settings.TouchYmax, sizeof(int), EeromTouchLoc+0x4);
+    eerom_load((char *)&Settings.TouchXoffset, sizeof(int), EeromTouchLoc+0x8);
+    eerom_load((char *)&Settings.TouchXmax, sizeof(int), EeromTouchLoc+0xc);
 }
 
 
@@ -175,47 +132,9 @@ void TouchSetngsUpdate(int ymin, int ymax, int xmin, int xmax){
 
 //salva in EErom i settaggi touchscreen
 void TouchSetngsSave(void){
-    int temp;
-    
-    i2cmembuff[0] = EeromTouchLoc;              //questa eerom come primo byte vuole l'indirizzo di partenza a cui scrivere
-    temp = Settings.TouchYoffset;
-    i2cmembuff[1] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[2] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[3] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[4] = temp;
-    temp = Settings.TouchYmax;
-    i2cmembuff[5] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[6] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[7] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[8] = temp;
-    i2c.write(I2cMemAddr, i2cmembuff, 9, false);
-
-    ThisThread::sleep_for(10ms);                     //la eerom impiega almeno 5msec a scriversi
-    
-    i2cmembuff[0] = 8;              //la eerom vuole come primo byte la locazione cui scrivere
-    temp = Settings.TouchXoffset;
-    i2cmembuff[1] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[2] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[3] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[4] = temp;
-    temp = Settings.TouchXmax;
-    i2cmembuff[5] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[6] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[7] = temp & 0xFF;
-    temp >>= 8;
-    i2cmembuff[8] = temp;
-    i2c.write(I2cMemAddr, i2cmembuff, 9, false);
-    
+    eerom_store((char *)&Settings.TouchYoffset, sizeof(int), EeromTouchLoc);
+    eerom_store((char *)&Settings.TouchYmax, sizeof(int), EeromTouchLoc+0x4);
+    eerom_store((char *)&Settings.TouchXoffset, sizeof(int), EeromTouchLoc+0x8);
+    eerom_store((char *)&Settings.TouchXmax, sizeof(int), EeromTouchLoc+0xc);   
 }
     

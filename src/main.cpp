@@ -1,10 +1,8 @@
 #include "mbed.h"
-#include "lcd.h"
 #include "touch.h"
 #include "gui.h"
 #include "io.h"
 #include "dome.h"
-#include "i2c.h"
 #include "mqtt.h"
 
 Ticker tick;
