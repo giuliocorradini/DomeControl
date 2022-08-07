@@ -23,6 +23,12 @@ int DomeShiftZero =0;
 int StopRampPulses = 300;     //quanti impulsi impiega la cupola a fermarsi dalla velocità massima
 int DomeManMotion = 0;      //movimento manuale in corso
 
+struct {
+    int start;
+    int finish;
+} DomePositionDecelerating; //salva la quota dell'encoder durante la rampa di decelerazione
+bool CalibratingSlope = false;
+
 bool isUserOverriding = false;  //true se l'utente sta pilotando la cupola manualmente coi pulsanti
 bool isTracking = false;
 
@@ -32,12 +38,15 @@ DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
 InterruptIn CwButton  (PA_7, PullNone);   // Clockwise movement button
 InterruptIn CcwButton (PA_8, PullNone);   // Counterclockwise movement button
 
+int SlopeCycleCounter = 0;
+
 namespace Dome::API {
     Mail<Command, 10> command_queue;
     Mutex tele_pos_mutex;   //Lock this mutex when writing/reading TelescopeAlt and TelescopePosition
 }
 
 void BindMqttCallbacks();
+void DomeStopSlopeCalibration();
 
 void InputOverrideISR() {
     //isUserOverriding = true;
@@ -50,13 +59,8 @@ void InputOverrideStopISR() {
 void DomeInit(void) {
 
     //recupera la quota di parcheggio cupola dalla eerom
-    i2cmembuff[0] = EeromParkLoc;              //indirizzo di partenza locazioni eerom
-    i2c.write(I2cMemAddr, i2cmembuff, 1, i2cNoEnd); //indirizza la locazione da leggere ma non manda lo stop
-    i2c.read(I2cMemAddr, i2cmembuff, 2, i2cEnd);
-    temp |= i2cmembuff[1];
-    temp <<= 8;
-    temp |= i2cmembuff[0];
-    QuotaParcheggio = temp;
+    eerom_load((char *)&QuotaParcheggio, sizeof(int), EeromParkLoc);
+    eerom_load((char *)&StopRampPulses, sizeof(int), EeromStopRampPulsesLoc);
 
     DomeShiftZero = (DomeOneRotPulses * 2) - 18000;      //shift posizione = metà encoder così a centro encoder avremo posizione = 0 quando verra' reiteratamente ridotto di 12500 , nota che l'algo vuole solo numeri positivi
                                 //dato che ne ricaverà un numero 0/360, una while sottrarrà + volte 12500 fino ad essere 0/12500
@@ -84,6 +88,7 @@ inline void EmptyProcessQueue() {
 
 //richiamato ciclicamente da Main
 void DomeMain(void){
+    int next_mov;
  
     //se siamo in movimento controlliamo l'arrivo in quota
     if (DomeMotion) {
@@ -127,12 +132,28 @@ void DomeMain(void){
         command_queue.free(cmd);    //Libero spazio nella cassetta postale
     }
 
+    if(CalibratingSlope) {
+        SlopeCycleCounter++;
+
+        if(SlopeCycleCounter == 500) {   //dopo cinque secondi stacca il motore
+            CwOut = 0;
+
+            DomePositionDecelerating.start = EncoderPosition;
+
+            debug("[slope] Stopping motor\n");
+        }
+
+        if(SlopeCycleCounter == 700) {   //aspetta altri due secondi
+            DomePositionDecelerating.finish = EncoderPosition;
+            DomeStopSlopeCalibration();
+        }
+    }
+
     //Se non stai facendo alcun movimento, avvia un nuovo movimento dalla coda di processo
     // Controllando il flag DomeMotion, avviamo un nuovo movimento (con DomeMoveStart) solo quando
     // ci siamo fermati. Ovvero quando abbiamo completato un movimento richeisto precedentemente,
     // visto che DomeMoveStop resetta il flag, oppure se è arrivato il comando di DomeMoveStop.
-    int next_mov;
-    if(!DomeMotion && GetNextMovement(next_mov)) {
+    else if(!DomeMotion && !CalibratingSlope && GetNextMovement(next_mov)) {
         DomeMoveStart(TelescopePosition, next_mov);
     }
 
@@ -140,7 +161,7 @@ void DomeMain(void){
     char dome_pos_str[8];
 
     if(DomePosition.is_changed()) {
-        sprintf(dome_pos_str, "%d", DomePosition);
+        sprintf(dome_pos_str, "%d", static_cast<int>(DomePosition));
         MQTTController::publish("T1/cupola/pos", dome_pos_str, true); //TODO: la pubblicazione accoda il messaggio, non lo invia da questo thread
     }
 
@@ -472,4 +493,34 @@ void BindMqttCallbacks() {
         PassReceivedCommandOn(action);
         debug("[remote] Enqueued command\n");
     });
+}
+
+void DomeStartSlopeCalibration() {
+    debug("[dome][slope] Starting slope calibration\n");
+    EmptyProcessQueue();
+    DomeMoveStop();
+
+    DomePositionDecelerating = {0, 0};
+
+    CalibratingSlope = true;
+
+    SlopeCycleCounter = 0;
+    CwOut = 1;
+}
+
+void DomeStopSlopeCalibration() {
+    CalibratingSlope = false;
+    StopRampPulses = abs(DomePositionDecelerating.finish - DomePositionDecelerating.start);
+
+    ScreenUpdate();
+
+    debug("[dome][slope] Calibration stopped. Ramp pulses: %d\n", StopRampPulses);
+
+    eerom_store((char *)&StopRampPulses, sizeof(int), EeromStopRampPulsesLoc);
+}
+
+void DomeResetSlopeCalibration() {
+    CalibratingSlope = false;
+    debug("[dome][slope] Calibration canceled. Reloading slope value from memory\n");
+    eerom_load((char *)&StopRampPulses, sizeof(int), EeromStopRampPulsesLoc);
 }

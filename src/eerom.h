@@ -11,6 +11,7 @@
 //elenco inizio locazioni di memoria EEROM
 #define EeromTouchLoc   0       //16 locazioni per calibrazione touchscreen
 #define EeromParkLoc    16      //2 locazioni per quota parcheggio
+#define EeromStopRampPulsesLoc  0x20
 #define I2cMemAddr      0xA0    //indirizzo eerom su bus I2C
 
 //  Read a sequence of bytes from EEROM at given address

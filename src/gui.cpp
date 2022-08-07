@@ -39,9 +39,10 @@ struct btnstruct Btn[54] = {
     {125,240,155,315,"SERVICE"},
     //pagina 1 service
     {45,40,85,150,"ESCI"},
-    {145,40,185,150,"CALIBRA TOUCH."},
+    {145,40,185,150,"CALIBRA TOUCH"},
     {45,180,85,280,"DIAGNOSTICA"},
     {145,180,185,280,"QUOTA PARCHEGGIO"},
+    {95,40,134,150,"RAMPA DECEL."},
     //pagina 2 calibrazione touchscreen
     {5,240,35,315,"ESCI"},
     {85,240,115,315,"AVVIA"},
@@ -57,21 +58,24 @@ struct btnstruct Btn[54] = {
     {5,240,35,315,"ESCI"},  
     //pagina 7 conferma azione di parcheggio cupola
     {140,70,170,145,"MUOVI"},
-    {140,175,170,250,"ESCI"}  
-    
+    {140,175,170,250,"ESCI"},
+    //pagina 8 calcolo della rampa di decelerazione
+    {55,122,85,197,"AVVIA"},
+    {5,240,35,315,"ESCI"}, 
 };
 
 /*definizione numero pulsante min e max per ogni pagina
  * serve per cercare nell'array Btn con GetKey e ButtonDraw*/
-const int BtnPageBoundary [8][2] = {
+const int BtnPageBoundary [9][2] = {
     {0,3},
-    {4,7},
-    {8,10},
-    {11,11},
+    {4,8},
+    {9,11},
     {12,12},
     {13,13},
-    {14,15},
-    {16,17}
+    {14,14},
+    {15,16},
+    {17,18},
+    {19,20},
 };
 
 //dati grezzi di calibrazione touchscreen
@@ -88,14 +92,15 @@ DigitalIn BuiltInButton(PC_13);     //pulsante built in della scheda nucleo, usa
 
 //prototipi
 void ButtonDraw(int page);
-void Page0Show();
-void Page1Show();
-void Page2Show();
-void Page3Show();
-void Page4Show();
-void Page5Show();
-void Page6Show();
+void Page0Show();   //principale
+void Page1Show();   //service
+void Page2Show();   //calibrazione touch
+void Page3Show();   //esegui calibrazione touch
+void Page4Show();   //conferma calibrazione touch
+void Page5Show();   //diagnostica
+void Page6Show();   //memorizza quota parcheggio
 void Page7Show();   //conferma parcheggio
+void Page8Show();   //calcolo rampa di decelarazione
 
 int getkey(void);
 void DomeDrawUpdate(void);
@@ -161,6 +166,9 @@ void GuiMain(void) {
         break;
     case 7:             //conferma azione parcheggio
         Page7Show();
+        break;
+    case 8:
+        Page8Show();
         break;
     };
 }
@@ -319,6 +327,10 @@ void Page1Show() {
         break;
     case 4:                 // memorizza la quota encoder attuale come quota di parcheccio
         CurrentPage = 6;
+        update = 1;
+        break;
+    case 5:
+        CurrentPage = 8;    // calcola rampa decelerazione
         update = 1;
         break;
     };
@@ -516,6 +528,7 @@ void Page5Show() {
         LCD.graph_text("Posizione encoder",10,10,nero);
         LCD.graph_text("Posizione cupola ",20,10,nero);
         LCD.graph_text("Quota parcheggio ",30,10,nero);
+        LCD.graph_text("Rampa di decelerazione ",40,10,nero);
 
     };
     update = 0;
@@ -535,6 +548,10 @@ void Page5Show() {
         LCD.fillRect(30, 124, 7, 36, bianco);
         sprintf(buff," %d     ", QuotaParcheggio);
         LCD.graph_text(buff,30,124,nero);
+        
+        LCD.fillRect(40, 150, 7, 36, bianco);
+        sprintf(buff," %d     ", StopRampPulses);
+        LCD.graph_text(buff,40,150,nero);
     };
 
 
@@ -623,6 +640,44 @@ void Page7Show(void) {
             break;
     };
 
+}
+
+/*
+ *  Mostra la pagina per avviare il calcolo della rampa di decelerazione.
+ */
+void Page8Show() {
+    if(update) {
+        LCD.clearScreen();
+        strcpy(Btn[19].testo, CalibratingSlope ? "FERMA" : "AVVIA");
+
+        ButtonDraw(8);
+
+        LCD.graph_text("Il controller muovera' la cupola per 10 secondi",100,20,nero);
+        LCD.graph_text("nel senso di marcia che non fa andare in rollover",110,15,nero);
+        LCD.graph_text("l'encoder, poi stacca il segnale e misura da",120,20,nero);
+        LCD.graph_text("questo momento per quanti impulsi",130,20,nero);
+        LCD.graph_text("la cupola continua a muoversi",140,20,nero);
+    
+        update = 0;
+    }
+
+    switch(getkey()) {
+        case 1: //avvia movimento
+            if(!CalibratingSlope)
+                DomeStartSlopeCalibration();
+            else
+                DomeResetSlopeCalibration();
+            update = 1;
+            break;
+
+        case 2: //esci
+            if(CalibratingSlope)
+                DomeResetSlopeCalibration();
+
+            CurrentPage = 1;
+            update = 1;
+            break;
+    }
 }
 
 

@@ -18,6 +18,8 @@ extern int TelescopeAlt;
 extern int DomeParking;
 extern int DomeOneRotPulses;       //quanti impulsi encoder per giro di cupola
 extern int DomeShiftZero;
+extern int StopRampPulses;
+extern bool CalibratingSlope;
 
 #define Rollover 0
 #define Absolute 1
@@ -35,6 +37,8 @@ void DomePark(void);
 int MotionStart( int Dist2Go );
 void DomeManStart(int dir);
 void DomeManStop(void);
+void DomeStartSlopeCalibration();
+void DomeResetSlopeCalibration();
 
 const int TELESCOPE_POSITION_DELTA_THRESHOLD = 5;
 void TelescopePositionUpdate(int new_position);
