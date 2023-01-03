@@ -37,8 +37,8 @@ int TrackingStopAngle = 5;  //Angolo che determina se staccare l'inseguimento se
 DigitalInOut CwOut(PA_6,PIN_OUTPUT,PullNone,0);
 DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
 
-InterruptIn CwButton  (PA_7, PullNone);   // Clockwise movement button
-InterruptIn CcwButton (PA_8, PullNone);   // Counterclockwise movement button
+//InterruptIn ManualMovementButton(PA_7, PullNone);
+DigitalInOut CwTrack(PA_8,PIN_OUTPUT,PullNone,0);       //movimento lento di inseguimento
 
 int SlopeCycleCounter = 0;
 
@@ -90,11 +90,8 @@ void DomeInit(void) {
                                 //dato che ne ricaverà un numero 0/360, una while sottrarrà + volte 12500 fino ad essere 0/12500
 
     // Collega callback alle ISR dei pulsanti
-    CwButton.rise(InputOverrideISR);
-    CcwButton.rise(InputOverrideISR);
-
-    CwButton.fall(InputOverrideStopISR);
-    CcwButton.fall(InputOverrideStopISR);
+    //ManualMovementButton.rise(InputOverrideISR);
+    //ManualMovementButton.rise(InputOverrideISR);
 
     BindMqttCallbacks();
 }

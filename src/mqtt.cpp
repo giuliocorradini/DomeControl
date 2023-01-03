@@ -103,6 +103,7 @@ void mqtt_thread() {
             conn_status = MQTTController::yield(1000);
             if(conn_status == MQTT::FAILURE) {
                 debug("[MQTT] Error: disconnected from broker\n");
+                ThisThread::sleep_for(500ms);
             }
         } while(conn_status == MQTT::SUCCESS);
 
