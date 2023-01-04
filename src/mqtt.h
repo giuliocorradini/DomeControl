@@ -24,6 +24,8 @@ namespace MQTTController {
     void subscribe(const char *topic, MessageHandler_t callback);
 
     int yield(int wait_time);
+
+    extern void (*bind_sub_callbacks_cb)(void);
 };
 
 namespace Remote {

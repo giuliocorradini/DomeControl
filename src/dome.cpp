@@ -93,7 +93,7 @@ void DomeInit(void) {
     //ManualMovementButton.rise(InputOverrideISR);
     //ManualMovementButton.rise(InputOverrideISR);
 
-    BindMqttCallbacks();
+    MQTTController::bind_sub_callbacks_cb = BindMqttCallbacks;
 }
 
 // Coda per processare la lista dei movimenti che dobbiamo compiere (ad esempio centrare prima del tracking)
@@ -443,6 +443,62 @@ void TelescopePositionUpdate(int new_pos) {
     SAFE_TELESCOPE_UPDATE(TelescopePosition = new_pos);
 }
 
+void MqttAzimuthCallback(MQTT::MessageData &msg) {
+    debug("[MQTT] Received telescope azimuth update\n");
+
+    static char buffer[4];
+    strncpy(buffer, (char *)msg.message.payload, msg.message.payloadlen > 3 ? 3 : msg.message.payloadlen);
+
+    int azimuth;
+
+    if(sscanf(buffer, "%d", &azimuth)) {
+        azimuth = azimuth > 0 ? (azimuth < 360 ? azimuth : 359) : 0; //Clamp in [0, 360) without branching
+        TelescopePositionUpdate(azimuth);
+    } else {
+        debug("[MQTT] Error while parsing telescope azimuth");
+    }
+}
+
+void MqttAltitudeCallback(MQTT::MessageData &msg) {
+    debug("[MQTT] Received telescope altitude update\n");
+
+    static char buffer[4];
+    strncpy(buffer, (char *)msg.message.payload, msg.message.payloadlen > 2 ? 2 : msg.message.payloadlen);
+
+    int altitude;
+    if(sscanf((char *)buffer, "%d", &altitude)) {
+        altitude = altitude > 0 ? (altitude <= 90 ? altitude : 90) : 0; //Clamp in [0, 90] without branching
+        SAFE_TELESCOPE_UPDATE(TelescopeAlt = altitude);
+    } else {
+        debug("[MQTT] Error while parsing telescope altitude");
+    }
+}
+
+void MqttCommandCallback(MQTT::MessageData &msg) {
+    debug("[MQTT] Received command\n");
+
+    char *command_str = (char *)msg.message.payload;
+
+    using namespace Dome::API;
+    Command action;
+
+    if(strncmp(command_str, "Centra", 6) == 0) {
+        action = CENTER;
+    } else if (strncmp(command_str, "Insegui", 7) == 0) {
+        action = TRACK;
+    } else if (strncmp(command_str, "NoInsegui", 10) == 0) {
+        action = NO_TRACK;
+    } else if (strncmp(command_str, "Stop", 4) == 0) {
+        action = STOP;
+    } else {
+        debug("[MQTT] Unrecognised command received\n");
+        return;
+    }
+
+    PassReceivedCommandOn(action);
+    debug("[remote] Enqueued command\n");
+}
+
 /*  
  *  This function binds callbacks with the MQTT client for required subscription
  *  Right now those functions are enabled:
@@ -455,64 +511,11 @@ void TelescopePositionUpdate(int new_pos) {
  */
 void BindMqttCallbacks() {
     //Receive telescope coordinates
-    MQTTController::subscribe("T1/telescopio/az", [](MQTT::MessageData &msg) {
-        debug("[MQTT] Received telescope azimuth update\n");
-
-        char buffer[4];
-        strncpy(buffer, (char *)msg.message.payload, msg.message.payloadlen > 3 ? 3 : msg.message.payloadlen);
-
-        int azimuth;
-
-        if(sscanf(buffer, "%d", &azimuth)) {
-            azimuth = azimuth > 0 ? (azimuth < 360 ? azimuth : 359) : 0; //Clamp in [0, 360) without branching
-            TelescopePositionUpdate(azimuth);
-        } else {
-            debug("[MQTT] Error while parsing telescope azimuth");
-        }
-        
-    });
-
-    MQTTController::subscribe("T1/telescopio/alt", [](MQTT::MessageData &msg) {
-        debug("[MQTT] Received telescope altitude update\n");
-
-        char buffer[4];
-        strncpy(buffer, (char *)msg.message.payload, msg.message.payloadlen > 2 ? 2 : msg.message.payloadlen);
-
-        int altitude;
-        if(sscanf((char *)buffer, "%d", &altitude)) {
-            altitude = altitude > 0 ? (altitude <= 90 ? altitude : 90) : 0; //Clamp in [0, 90] without branching
-            SAFE_TELESCOPE_UPDATE(TelescopeAlt = altitude);
-        } else {
-            debug("[MQTT] Error while parsing telescope altitude");
-        }
-        
-    });
+    MQTTController::subscribe("T1/telescopio/az", MqttAzimuthCallback);
+    MQTTController::subscribe("T1/telescopio/alt", MqttAltitudeCallback);
 
     //Commands
-    MQTTController::subscribe("T1/cupola/cmd", [](MQTT::MessageData &msg) {
-        debug("[MQTT] Received command\n");
-
-        char *command_str = (char *)msg.message.payload;
-
-        using namespace Dome::API;
-        Command action;
-
-        if(strncmp(command_str, "Centra", 6) == 0) {
-            action = CENTER;
-        } else if (strncmp(command_str, "Insegui", 7) == 0) {
-            action = TRACK;
-        } else if (strncmp(command_str, "NoInsegui", 10) == 0) {
-            action = NO_TRACK;
-        } else if (strncmp(command_str, "Stop", 4) == 0) {
-            action = STOP;
-        } else {
-            debug("[MQTT] Unrecognised command received\n");
-            return;
-        }
-
-        PassReceivedCommandOn(action);
-        debug("[remote] Enqueued command\n");
-    });
+    MQTTController::subscribe("T1/cupola/cmd", MqttCommandCallback);
 }
 
 void DomeStartSlopeCalibration() {

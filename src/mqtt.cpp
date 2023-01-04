@@ -23,6 +23,8 @@ bool init(char *broker) {
 
     if(client == nullptr)
         client = new MQTT::Client<MQTTSocket, Countdown>(*network);
+    else
+        delete client;
 
     MQTTPacket_connectData connectOptions = MQTTPacket_connectData_initializer;
     connectOptions.keepAliveInterval = 400;
@@ -31,6 +33,13 @@ bool init(char *broker) {
 
     return true;
 }
+
+/*
+ * This function is called by the initialization routine for the MQTT client, each time
+ * we try to perform a connection. It's provided by the Dome module, so mqtt_thread should be called
+ * after we call dome_init.
+ */
+void (*bind_sub_callbacks_cb)(void) = nullptr;
 
 void end() {
     client->disconnect();
@@ -97,7 +106,11 @@ void mqtt_thread() {
         int conn_status;
 
         int broker_status;
-        BrokerStatus.try_put(&(broker_status = 1)); //assign 1 to broker_status and get its pointer &
+        if(client->isConnected()) {
+            BrokerStatus.try_put(&(broker_status = 1)); //assign 1 to broker_status and get its pointer &
+            if(MQTTController::bind_sub_callbacks_cb != nullptr)
+                MQTTController::bind_sub_callbacks_cb();
+        }
 
         do {
             conn_status = MQTTController::yield(1000);
