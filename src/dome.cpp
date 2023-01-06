@@ -447,7 +447,9 @@ void MqttAzimuthCallback(MQTT::MessageData &msg) {
     debug("[MQTT] Received telescope azimuth update\n");
 
     static char buffer[4];
-    strncpy(buffer, (char *)msg.message.payload, msg.message.payloadlen > 3 ? 3 : msg.message.payloadlen);
+    int msg_len = msg.message.payloadlen > 3 ? 3 : msg.message.payloadlen;
+    strncpy(buffer, (char *)msg.message.payload, msg_len);
+    buffer[msg_len] = '\0';
 
     int azimuth;
 
@@ -463,7 +465,9 @@ void MqttAltitudeCallback(MQTT::MessageData &msg) {
     debug("[MQTT] Received telescope altitude update\n");
 
     static char buffer[4];
-    strncpy(buffer, (char *)msg.message.payload, msg.message.payloadlen > 2 ? 2 : msg.message.payloadlen);
+    int msg_len = msg.message.payloadlen > 2 ? 2 : msg.message.payloadlen;
+    strncpy(buffer, (char *)msg.message.payload, msg_len);
+    buffer[msg_len] = '\0';
 
     int altitude;
     if(sscanf((char *)buffer, "%d", &altitude)) {
