@@ -34,8 +34,8 @@ bool isTracking = false;
 int TrackingStopAngle = 5;  //Angolo che determina se staccare l'inseguimento se dopo un aggiornamento (ogni secondo) della posizione
                             //del telescopio, questo si è mosso di più dell'angolo
 
-DigitalInOut CwOut(PA_6,PIN_OUTPUT,PullNone,0);
-DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
+DigitalOut CwOut(PB_2, 0);
+DigitalOut CcwOut(PA_6, 0);
 
 //InterruptIn ManualMovementButton(PA_7, PullNone);
 DigitalInOut CwTrack(PA_8,PIN_OUTPUT,PullNone,0);       //movimento lento di inseguimento
