@@ -138,10 +138,9 @@ void IoMain(void){
         GuiEncLinkShow(0);
 
     // Update time counter (every second)
-    if (++CycleCounter == 50)
+    if (++CycleCounter == 50) {
         encoder.write("R", 1); //invia una richiesta di posizione all'encoder
-
-    if (CycleCounter == 100)
         CycleCounter = 0;
+    }
 
 }

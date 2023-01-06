@@ -40,6 +40,8 @@ DigitalInOut CcwOut(PA_5,PIN_OUTPUT,PullNone,0);
 //InterruptIn ManualMovementButton(PA_7, PullNone);
 DigitalInOut CwTrack(PA_8,PIN_OUTPUT,PullNone,0);       //movimento lento di inseguimento
 
+static int counter = 0;
+
 int SlopeCycleCounter = 0;
 
 namespace Dome::API {
@@ -110,6 +112,8 @@ inline void EmptyProcessQueue() {
 //richiamato ciclicamente da Main
 void DomeMain(void){
     int next_mov;
+
+    counter++;
 
     if(isTracking && AngularDelta(TelescopePosition) >= TrackingStopAngle)
         DomeMoveStop();
@@ -184,9 +188,10 @@ void DomeMain(void){
     //trasmetti la quota attuale al broker se questa cambia
     char dome_pos_str[8];
 
-    if(DomePosition.is_changed()) {
+    if(DomePosition.is_changed() || counter > 200) {
         sprintf(dome_pos_str, "%d", static_cast<int>(DomePosition));
         MQTTController::publish("T1/cupola/pos", dome_pos_str, true); //TODO: la pubblicazione accoda il messaggio, non lo invia da questo thread
+        counter = 0;
     }
 
 }
