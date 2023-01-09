@@ -238,9 +238,9 @@ int DomeMoveStart(int target, int type) {
         abbiamo poi due casistiche: se il moto da compiere e' positivo o negativo
         in quel caso dobbiamo sottrarre duepigredo o sommarlo a seconda...
         */
-        if (moto > 359)
+        if (moto > 180)
             moto -= 360;        
-        else if (moto < -359)
+        else if (moto < -180)
             moto += 360;
         
         break;
