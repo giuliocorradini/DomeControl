@@ -16,7 +16,7 @@ int TelescopeAlt = 0;       //altezza telescopio
 int DomeParking = 0;        //flag di cupola in parcheggio
 int DomeAbsTarget = 0;      //target assoluto di movimento cupola in impulsi encoder
 int temp;
-int DomeOneRotPulses = 12500;       //quanti impulsi encoder per giro di cupola
+int DomeOneRotPulses = 12670;       //quanti impulsi encoder per giro di cupola
 int MemDir = 0;             //memoria di direzione intrapresa
 int DomeShiftZero =0;
 int StopRampPulses = 300;     //quanti impulsi impiega la cupola a fermarsi dalla velocità massima
@@ -33,6 +33,7 @@ bool isTracking = false;
 
 int TrackingStopAngle = 5;  //Angolo che determina se staccare l'inseguimento se dopo un aggiornamento (ogni secondo) della posizione
                             //del telescopio, questo si è mosso di più dell'angolo
+int TrackingRestartThreshold = 10;
 
 DigitalOut CwOut(PB_2, 0);
 DigitalOut CcwOut(PA_6, 0);
@@ -59,6 +60,8 @@ void InputOverrideISR() {
 void InputOverrideStopISR() {
     //isUserOverriding = false;
 }
+
+void MotionStop();
 
 /*
  *  Calcola la distanza in termini assoluti tra due angoli della posizione del telescopio [0, 360]
@@ -114,19 +117,16 @@ void DomeMain(void){
     int next_mov;
 
     counter++;
-
-    if(isTracking && AngularDelta(TelescopePosition) >= TrackingStopAngle)
-        DomeMoveStop();
  
     //se siamo in movimento controlliamo l'arrivo in quota
     if (DomeMotion || DomeParking) {
 
         if (MemDir == Cw) {
             if (EncoderPosition >= DomeAbsTarget)
-                DomeMoveStop();
+                MotionStop();
         } else {
             if (EncoderPosition <= DomeAbsTarget)
-                DomeMoveStop();
+                MotionStop();
         };
 
     };
@@ -146,11 +146,10 @@ void DomeMain(void){
             case TRACK:
                 isTracking = true;
                 movement_process_queue.try_put((int *)Rollover);
-                movement_process_queue.try_put((int *)Tracking);
+                //movement_process_queue.try_put((int *)Tracking);
                 break;
             case STOP:
             case NO_TRACK:
-                isTracking = false;
                 DomeMoveStop();
                 //Pulisce la coda di processo
                 EmptyProcessQueue();
@@ -191,7 +190,18 @@ void DomeMain(void){
     if(DomePosition.is_changed() || counter > 200) {
         sprintf(dome_pos_str, "%d", static_cast<int>(DomePosition));
         MQTTController::publish("T1/cupola/pos", dome_pos_str, true); //TODO: la pubblicazione accoda il messaggio, non lo invia da questo thread
+        MQTTController::publish("T1/cupola/status", DomeMotion ? "MovingOn\n" : "MovingOff\n", true);
+        MQTTController::publish("T1/cupola/status", isTracking ? "TrackingOn\n" : "TrackingOff\n", true);
         counter = 0;
+    }
+
+    if(isTracking && !DomeMotion) {
+        int angle = abs(TelescopePosition - DomePosition);
+        if(angle > 180)
+            angle = 360 - angle;
+
+        if(angle > TrackingRestartThreshold)
+            DomeMoveStart(TelescopePosition, Tracking);
     }
 
 }
@@ -225,6 +235,7 @@ int DomeMoveStart(int target, int type) {
     //e in quel caso applichiamo un algoritmo adatto
     switch (type){
     case Rollover:
+    case Tracking:
         //calcoliamo quanto manca al target
         moto = target - DomePosition;
         //aggiunge un offset in modo da posizionarsi un po piu a destra
@@ -245,7 +256,6 @@ int DomeMoveStart(int target, int type) {
         
         break;
     case Absolute:
-    case Tracking:
         //moto assoluto -360+360 
         //rendendo eventualmente possibile fare +720 !
         moto = target;    
@@ -359,19 +369,23 @@ int MotionStart( int Dist2Go ){
     return 1;    
 }
 
-
-//interrompe un movimento automatico della cupola
-void DomeMoveStop(void) {
+void MotionStop(void) {
     DomeMotion = 0;
     DomeParking = 0;
     DomeManMotion = 0;
-    isTracking = false;
     CwOut.write(0);
     CcwOut.write(0);
     MemDir = 0;
     GuiPage0BtnRestore();       //toglie eventuali pulsanti FERMA
     
     debug("[dome] Movimento fermato\n");
+}
+
+
+//interrompe un movimento automatico della cupola
+void DomeMoveStop(void) {
+    isTracking = false;
+    MotionStop();
 }
 
 //avvia un movimento manuale in orario o antiorario 
@@ -441,15 +455,16 @@ void PassReceivedCommandOn(Dome::API::Command action) {
  *  l'inseguimento.
  */
 void TelescopePositionUpdate(int new_pos) {
-    if(abs(new_pos - TelescopePosition) >= TELESCOPE_POSITION_DELTA_THRESHOLD) {
-        DomeMoveStop();
-    }
-
     SAFE_TELESCOPE_UPDATE(TelescopePosition = new_pos);
+
+    // Controlla che il telescopio non si muova troppo velocemente. Nel caso stacca i movimenti
+    // perché vorrebbe dire che stiamo muovendo manualmente il telescopio.
+    if(AngularDelta(TelescopePosition) >= TrackingStopAngle)
+        DomeMoveStop();
 }
 
 void MqttAzimuthCallback(MQTT::MessageData &msg) {
-    debug("[MQTT] Received telescope azimuth update\n");
+    //debug("[MQTT] Received telescope azimuth update\n");
 
     static char buffer[4];
     int msg_len = msg.message.payloadlen > 3 ? 3 : msg.message.payloadlen;
@@ -462,12 +477,12 @@ void MqttAzimuthCallback(MQTT::MessageData &msg) {
         azimuth = azimuth > 0 ? (azimuth < 360 ? azimuth : 359) : 0; //Clamp in [0, 360) without branching
         TelescopePositionUpdate(azimuth);
     } else {
-        debug("[MQTT] Error while parsing telescope azimuth");
+        //debug("[MQTT] Error while parsing telescope azimuth");
     }
 }
 
 void MqttAltitudeCallback(MQTT::MessageData &msg) {
-    debug("[MQTT] Received telescope altitude update\n");
+    //debug("[MQTT] Received telescope altitude update\n");
 
     static char buffer[4];
     int msg_len = msg.message.payloadlen > 2 ? 2 : msg.message.payloadlen;
@@ -479,12 +494,12 @@ void MqttAltitudeCallback(MQTT::MessageData &msg) {
         altitude = altitude > 0 ? (altitude <= 90 ? altitude : 90) : 0; //Clamp in [0, 90] without branching
         SAFE_TELESCOPE_UPDATE(TelescopeAlt = altitude);
     } else {
-        debug("[MQTT] Error while parsing telescope altitude");
+        //debug("[MQTT] Error while parsing telescope altitude");
     }
 }
 
 void MqttCommandCallback(MQTT::MessageData &msg) {
-    debug("[MQTT] Received command\n");
+    //debug("[MQTT] Received command\n");
 
     char *command_str = (char *)msg.message.payload;
 
@@ -500,12 +515,12 @@ void MqttCommandCallback(MQTT::MessageData &msg) {
     } else if (strncmp(command_str, "Stop", 4) == 0) {
         action = STOP;
     } else {
-        debug("[MQTT] Unrecognised command received\n");
+        //debug("[MQTT] Unrecognised command received\n");
         return;
     }
 
     PassReceivedCommandOn(action);
-    debug("[remote] Enqueued command\n");
+    //debug("[remote] Enqueued command\n");
 }
 
 /*  
