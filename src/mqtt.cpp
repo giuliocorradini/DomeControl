@@ -17,7 +17,7 @@ bool init(char *broker) {
 
     int conn_status = network->connect(broker, 1883);
     if(conn_status != NSAPI_ERROR_OK) {
-        debug("[MQTT] Could not establish connection with broker\n");
+        //debug("[MQTT] Could not establish connection with broker\n");
         return false;
     }
 
@@ -115,7 +115,7 @@ void mqtt_thread() {
         do {
             conn_status = MQTTController::yield(1000);
             if(conn_status == MQTT::FAILURE) {
-                debug("[MQTT] Error: disconnected from broker\n");
+                //debug("[MQTT] Error: disconnected from broker\n");
                 ThisThread::sleep_for(500ms);
             }
         } while(conn_status == MQTT::SUCCESS);
@@ -130,6 +130,6 @@ void mqtt_thread() {
 
 void MqttInit() {
     //Prepare MQTT subscriptions
-    debug("[remote] Trying to initialize broker connection\n");
+    //debug("[remote] Trying to initialize broker connection\n");
     MQTTController::init(CONFIG_MQTT_BROKER_ADDR);
 }

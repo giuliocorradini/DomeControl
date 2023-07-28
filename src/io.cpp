@@ -71,20 +71,20 @@ void IoInit(void){
     Pc.set_format(8, SerialBase::None, 1);
     
     ThisThread::sleep_for(1s); // 1 second for stable state
-    debug("[io] Initializing Ethernet if net0\n");
+    //debug("[io] Initializing Ethernet if net0\n");
     returnCode = eth.init(MAC_Addr,MyIP_Addr,IP_Subnet,IP_Gateway);
     net::interfaces::eth0 = &eth;
  
     if ( returnCode == 0 ){
-        debug("[io]   Ethernet ready\n");
+        //debug("[io]   Ethernet ready\n");
     } else {
-        debug("[io]   Could not initialize Ethernet\n");
+        //debug("[io]   Could not initialize Ethernet\n");
     }
     
-    debug("[io] Ethernet connecting\n");
+    //debug("[io] Ethernet connecting\n");
     returnCode = eth.connect();
-    debug("[io]   connecting returned %d\n", returnCode);
-    debug("[io]   IP Address is %s\n", eth.get_ip_address());
+    //debug("[io]   connecting returned %d\n", returnCode);
+    //debug("[io]   IP Address is %s\n", eth.get_ip_address());
 }
 
 
@@ -109,7 +109,7 @@ void IoMain(void){
 
         if(success == 1) {  // Se ho scansionato esattamente un elemento correttamente
 
-            debug("[io] decoded position from encoder %d\n", position);
+            //debug("[io] decoded position from encoder %d\n", position);
 
             //siccome l'encoder gira a rovescio invertiamo il numero ottenuto
             position = 36000 - position;
