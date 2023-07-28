@@ -50,7 +50,7 @@ namespace Dome {
     };
 
     namespace API {
-        enum Command {CENTER, TRACK, NO_TRACK, STOP};
+        enum Command {CENTER, TRACK, NO_TRACK, STOP, MOVE_CW, MOVE_CCW};
         extern Mail<Command, 10> command_queue;
         extern Mutex tele_pos_mutex;
     }

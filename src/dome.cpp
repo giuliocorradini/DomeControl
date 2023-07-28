@@ -49,6 +49,37 @@ namespace Dome::API {
     Mutex tele_pos_mutex;   //Lock this mutex when writing/reading TelescopeAlt and TelescopePosition
 }
 
+
+/* Manual movement from MQTT with security mechanism */
+Timeout mqttManualOperationSecurityTimer; //Triggers 30 sec. after a manual movement command
+bool mqttManualOperationSecurityFlag = 0;
+
+
+void MoveClockwiseManual(void) {
+    CwOut = 1;
+    CcwOut = 0;
+}
+
+void MoveCounterClockwiseManual(void) {
+    CwOut = 0;
+    CcwOut = 1;
+}
+
+void mqttManualSecurityTimerCallback(void) {
+    mqttManualOperationSecurityFlag = 1;
+}
+
+void mqttManualSecurityTimerStart(void) {
+    mqttManualOperationSecurityFlag = 0;
+    mqttManualOperationSecurityTimer.attach(mqttManualSecurityTimerCallback, 30s);
+}
+
+void mqttManualSecurityTimerStop(void) {
+    mqttManualOperationSecurityFlag = 0;
+    mqttManualOperationSecurityTimer.detach();
+}
+
+
 void BindMqttCallbacks();
 void DomeStopSlopeCalibration();
 
@@ -115,6 +146,11 @@ void DomeMain(void){
 
     counter++;
 
+    //Se sono passati 30s senza ricevere alcun stop via MQTT in seguito all'avvio manuale di un
+    //movimento blocca il movimento.
+    if(mqttManualOperationSecurityFlag)
+        DomeMoveStop();
+
     if(isTracking && AngularDelta(TelescopePosition) >= TrackingStopAngle)
         DomeMoveStop();
  
@@ -149,11 +185,22 @@ void DomeMain(void){
                 movement_process_queue.try_put((int *)Tracking);
                 break;
             case STOP:
+                mqttManualSecurityTimerStop();
             case NO_TRACK:
                 isTracking = false;
                 DomeMoveStop();
                 //Pulisce la coda di processo
                 EmptyProcessQueue();
+                break;
+            case MOVE_CW:
+                DomeMoveStop();
+                mqttManualSecurityTimerStart();
+                MoveClockwiseManual();
+                break;
+            case MOVE_CCW:
+                DomeMoveStop();
+                mqttManualSecurityTimerStart();
+                MoveCounterClockwiseManual();
                 break;
         }
 
@@ -499,6 +546,10 @@ void MqttCommandCallback(MQTT::MessageData &msg) {
         action = NO_TRACK;
     } else if (strncmp(command_str, "Stop", 4) == 0) {
         action = STOP;
+    } else if (strncmp(command_str, "MoveCw", 6) == 0) {
+        action = MOVE_CW;
+    } else if (strncmp(command_str, "MoveCcw", 7) == 0) {
+        action = MOVE_CCW;
     } else {
         debug("[MQTT] Unrecognised command received\n");
         return;
