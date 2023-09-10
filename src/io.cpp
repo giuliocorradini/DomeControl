@@ -6,9 +6,11 @@
 #include "gui.h"
 #include "WIZnetInterface.h"
 #include "config.h"
+#include "rfid_positioning.h"
 
 
 BufferedSerial Pc(USBTX,USBRX);
+RfidPositioning absoluteRfidEncoder;
 
 
 /* Encoder serial connection */
@@ -85,6 +87,8 @@ void IoInit(void){
     returnCode = eth.connect();
     //debug("[io]   connecting returned %d\n", returnCode);
     //debug("[io]   IP Address is %s\n", eth.get_ip_address());
+
+    absoluteRfidEncoder.init();
 }
 
 
@@ -97,6 +101,8 @@ void IoMain(void){
     int elems = 0;
 
     int success;
+
+    int absolute_angle_index = 0;
 
     // Extract encoder response char-by-char from the ring buffer
     if (EncStringReceiveEndFlag) {
@@ -141,6 +147,10 @@ void IoMain(void){
     if (++CycleCounter == 50) {
         encoder.write("R", 1); //invia una richiesta di posizione all'encoder
         CycleCounter = 0;
+
+        absolute_angle_index = absoluteRfidEncoder.get_present_card_index();
+        if(absolute_angle_index != -1)
+            debug("[io] Absolute rfid encoder angle index: %d\n", absolute_angle_index);
     }
 
 }

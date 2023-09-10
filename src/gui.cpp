@@ -10,7 +10,7 @@
 AnalogIn LoadIn(A2);
 
 //BusInOut  MyBus(PC_0,PC_1,PC_2,PC_3,PC_4,PC_5,PC_6,PC_7);
-NHLCD   LCD(PC_9,PC_10,PC_12,PC_11,PC_8);
+NHLCD   lcd(PC_9,PC_10,PC_12,PC_11,PC_8);
 
 DigitalOut BackLight(PA_7);     //retroilluminazione
 int BackLitTimeout = 0;         //timer spegnimento retroilluminazione
@@ -111,7 +111,7 @@ void OvTrMeter(uint16_t valore);
 void GuiInit(void){
     update = 1;
     CurrentPage=0;   
-    LCD.Init();
+    lcd.Init();
     
     //se il pulsante blu user che c'è nella scheda nucleo è premuto
     //entriamo direttamente nella calibrazione touchscreen
@@ -188,24 +188,24 @@ void Page0Show() {
         update = 1;
 
     if (update) {
-        LCD.clearScreen();
+        lcd.clearScreen();
 
         //pulsanti sottomenu per pagina 0
         ButtonDraw(0);
         
         //punti cardinali
-        LCD.graph_text("S",18,118,1);
-        LCD.graph_text("N",216,118,1);
-        LCD.graph_text("E",118,19,1);
-        LCD.graph_text("W",118,216,1);
+        lcd.graph_text("S",18,118,1);
+        lcd.graph_text("N",216,118,1);
+        lcd.graph_text("E",118,19,1);
+        lcd.graph_text("W",118,216,1);
 
         // Etichette dei dati di posizione di telescopio e cupola
-        LCD.graph_text("cupola",214,6,nero);
-        LCD.graph_text("telescopio Az",226,6,nero);
-        LCD.graph_text("Alt",226,120,nero);
+        lcd.graph_text("cupola",214,6,nero);
+        lcd.graph_text("telescopio Az",226,6,nero);
+        lcd.graph_text("Alt",226,120,nero);
 
         // Link con encoder
-        LCD.Rect(195,237,81,19,1);  //finestrella link encoder
+        lcd.Rect(195,237,81,19,1);  //finestrella link encoder
         GuiEncLinkShow(LinkRedraw);
 
         // Link con broker
@@ -215,21 +215,21 @@ void Page0Show() {
         } else {
             GuiBrokerLinkShow(LinkRedraw);
         }
-        LCD.Rect(220,237,81,19,1);  //finestrella link host
+        lcd.Rect(220,237,81,19,1);  //finestrella link host
         
-        LCD.Rect(3,6,67,10,1);  //finestrella power meter
-        LCD.graph_text("carico",15,22,nero);
-        LCD.Rect(3,157,73,10,1);    //finestrella monitor oltrecorsa
-        LCD.graph_text("oltrecorsa",15,163,nero);
+        lcd.Rect(3,6,67,10,1);  //finestrella power meter
+        lcd.graph_text("carico",15,22,nero);
+        lcd.Rect(3,157,73,10,1);    //finestrella monitor oltrecorsa
+        lcd.graph_text("oltrecorsa",15,163,nero);
         
     };
 
     //aggiorniamo la posizione cupola in base a nuovo angolo o ad un aggiornamento schermo
     if (DomePosition != prevang || update) {
         DomeDrawUpdate();
-        LCD.fillRect(214,48,8,24,bianco);
+        lcd.fillRect(214,48,8,24,bianco);
         sprintf(buff,"%d\x7F", DomePosition);   // \x7f=127 cioe' ° nella nostra tabella
-        LCD.graph_text(buff,214,48,nero);
+        lcd.graph_text(buff,214,48,nero);
         prevang = DomePosition;
     };
 
@@ -239,9 +239,9 @@ void Page0Show() {
 
     //aggiorniamo l'altezza telescopio se cambia
     if (TelescopeAlt != prevalt || update) {
-        LCD.fillRect(226,148,8,18,bianco);
+        lcd.fillRect(226,148,8,18,bianco);
         sprintf(buff,"%d\x7F",TelescopeAlt);   // \x7f=127 cioe' ° nella nostra tabella
-        LCD.graph_text(buff,226,148,nero);
+        lcd.graph_text(buff,226,148,nero);
         prevalt = TelescopeAlt;
     };
     
@@ -305,7 +305,7 @@ void Page0Show() {
 void Page1Show() {
    
     if (update) {
-        LCD.clearScreen();
+        lcd.clearScreen();
         //pulsanti sottomenu per pagina 0
         ButtonDraw(1);
         
@@ -345,28 +345,28 @@ void Page2Show() {
     int dimX,dimY;
     
     if (update) {
-        LCD.clearScreen();
+        lcd.clearScreen();
         //pulsanti sottomenu per pagina 0
         ButtonDraw(2);
-        LCD.graph_text("Premi il tasto AVVIA",20,20,nero);
-        LCD.graph_text("poi dovrai premere in successione",30,20,nero);
-        LCD.graph_text("i 4 quadrati neri che ti verranno",40,20,nero);
-        LCD.graph_text("proposti negli spigoli",50,20,nero);
-        LCD.graph_text("dello schermo.",60,20,nero);
-        LCD.graph_text("Puoi provare la calibrazione",70,20,nero);
-        LCD.graph_text("e ripeterla se non e' soddisfacente",80,20,nero);
-        LCD.graph_text("toccando un punto qualsiasi",90,20,nero);
-        LCD.graph_text("in questa stessa pagina gia' da ora.",100,20,nero);
+        lcd.graph_text("Premi il tasto AVVIA",20,20,nero);
+        lcd.graph_text("poi dovrai premere in successione",30,20,nero);
+        lcd.graph_text("i 4 quadrati neri che ti verranno",40,20,nero);
+        lcd.graph_text("proposti negli spigoli",50,20,nero);
+        lcd.graph_text("dello schermo.",60,20,nero);
+        lcd.graph_text("Puoi provare la calibrazione",70,20,nero);
+        lcd.graph_text("e ripeterla se non e' soddisfacente",80,20,nero);
+        lcd.graph_text("toccando un punto qualsiasi",90,20,nero);
+        lcd.graph_text("in questa stessa pagina gia' da ora.",100,20,nero);
     };
     update = 0;
 
     //mostra dati attuali touch
     sprintf(buff,"X %d Y %d", TouchXg,TouchYg);
-    LCD.fillRect(200, 120, 7, 90, bianco);
-    LCD.graph_text(buff,200,120,nero);
+    lcd.fillRect(200, 120, 7, 90, bianco);
+    lcd.graph_text(buff,200,120,nero);
     sprintf(buff,"X %d Y %d", TouchX,TouchY);
-    LCD.fillRect(210, 120, 7, 100, bianco);
-    LCD.graph_text(buff,210,120,nero);
+    lcd.fillRect(210, 120, 7, 100, bianco);
+    lcd.graph_text(buff,210,120,nero);
 
     switch (getkey()) {
     case 1:                 //pulsante Exit
@@ -378,7 +378,7 @@ void Page2Show() {
         update = 1;
         break;
     case 3:                 //pulsante Exit
-        LCD.fillRect(0, 0, 240, 320, nogrigio);
+        lcd.fillRect(0, 0, 240, 320, nogrigio);
         break;
     };
 
@@ -388,7 +388,7 @@ void Page2Show() {
         else dimX = 10;
         if (TouchY < 5) dimY = 10-TouchY;
         else dimY = 10;
-        LCD.fillRect(TouchY-5,TouchX-5,dimY,dimX,grigio);
+        lcd.fillRect(TouchY-5,TouchX-5,dimY,dimX,grigio);
     };
 
 }
@@ -402,7 +402,7 @@ void Page3Show(void) {
    static int level;
    
     if (update) {
-        LCD.clearScreen();
+        lcd.clearScreen();
         //pulsanti sottomenu per pagina 0
         ButtonDraw(3);
         level = 0;
@@ -411,8 +411,8 @@ void Page3Show(void) {
 
     switch (level){
         case 0:
-            LCD.fillRect(115,0,10,10,nero);
-            LCD.graph_text("premi il quadratino",115,15,nero);
+            lcd.fillRect(115,0,10,10,nero);
+            lcd.graph_text("premi il quadratino",115,15,nero);
             level = 1;
             break;
         case 1:
@@ -422,9 +422,9 @@ void Page3Show(void) {
             };
             break;
         case 2:
-            LCD.clearScreen();
-            LCD.fillRect(0,155,10,10,nero);
-            LCD.graph_text("premi il quadratino",15,103,nero);
+            lcd.clearScreen();
+            lcd.fillRect(0,155,10,10,nero);
+            lcd.graph_text("premi il quadratino",15,103,nero);
             ButtonDraw(3);
             level = 3;
             break;
@@ -435,9 +435,9 @@ void Page3Show(void) {
             };
             break;
         case 4:
-            LCD.clearScreen();
-            LCD.fillRect(115,310,10,10,nero);
-            LCD.graph_text("premi il quadratino",115,191,nero);
+            lcd.clearScreen();
+            lcd.fillRect(115,310,10,10,nero);
+            lcd.graph_text("premi il quadratino",115,191,nero);
             ButtonDraw(3);
             level = 5;
             break;
@@ -448,9 +448,9 @@ void Page3Show(void) {
             };
             break;
         case 6:
-            LCD.clearScreen();
-            LCD.fillRect(230,155,10,10,nero);
-            LCD.graph_text("premi il quadratino",221,103,nero);
+            lcd.clearScreen();
+            lcd.fillRect(230,155,10,10,nero);
+            lcd.graph_text("premi il quadratino",221,103,nero);
             ButtonDraw(3);
             level = 7;
             break;
@@ -483,16 +483,16 @@ void Page4Show(void) {
    static int contaripeti;
    
     if (update) {
-        LCD.clearScreen();
+        lcd.clearScreen();
         //pulsanti sottomenu per pagina 0
         ButtonDraw(4);
-        LCD.graph_text("premi CONFERMA entro 10 secondi",100,70,nero);
-        LCD.graph_text("altrimenti la calibrazione",110,82,nero);
-        LCD.graph_text("verra' ripetuta !",120,112,nero);
+        lcd.graph_text("premi CONFERMA entro 10 secondi",100,70,nero);
+        lcd.graph_text("altrimenti la calibrazione",110,82,nero);
+        lcd.graph_text("verra' ripetuta !",120,112,nero);
         sprintf(buff,"XP %d XM %d", XP,XM);
-        LCD.graph_text(buff,140,112,nero);
+        lcd.graph_text(buff,140,112,nero);
         sprintf(buff,"YP %d YM %d", YP,YM);
-        LCD.graph_text(buff,150,112,nero);
+        lcd.graph_text(buff,150,112,nero);
         update = 0;
         contaripeti = 0;
         TouchSetngsUpdate(YM, YP, XM, XP);      //attiva subito i nuovi valori di matrice touchscreen ma solo in RAM
@@ -522,13 +522,13 @@ void Page5Show() {
     static int CycleCounter = 0;
     
     if (update) {
-        LCD.clearScreen();
+        lcd.clearScreen();
         //pulsanti sottomenu per pagina 5
         ButtonDraw(5);
-        LCD.graph_text("Posizione encoder",10,10,nero);
-        LCD.graph_text("Posizione cupola ",20,10,nero);
-        LCD.graph_text("Quota parcheggio ",30,10,nero);
-        LCD.graph_text("Rampa di decelerazione ",40,10,nero);
+        lcd.graph_text("Posizione encoder",10,10,nero);
+        lcd.graph_text("Posizione cupola ",20,10,nero);
+        lcd.graph_text("Quota parcheggio ",30,10,nero);
+        lcd.graph_text("Rampa di decelerazione ",40,10,nero);
 
     };
     update = 0;
@@ -537,21 +537,21 @@ void Page5Show() {
     if (CycleCounter++ == 20){
         CycleCounter = 0;
 
-        LCD.fillRect(10, 124, 7, 36, bianco);
+        lcd.fillRect(10, 124, 7, 36, bianco);
         sprintf(buff,"%d", EncoderPosition);
-        LCD.graph_text(buff,10,124,nero);
+        lcd.graph_text(buff,10,124,nero);
 
-        LCD.fillRect(20, 124, 7, 36, bianco);
+        lcd.fillRect(20, 124, 7, 36, bianco);
         sprintf(buff,"%d", DomePosition);
-        LCD.graph_text(buff,20,124,nero);
+        lcd.graph_text(buff,20,124,nero);
 
-        LCD.fillRect(30, 124, 7, 36, bianco);
+        lcd.fillRect(30, 124, 7, 36, bianco);
         sprintf(buff," %d     ", QuotaParcheggio);
-        LCD.graph_text(buff,30,124,nero);
+        lcd.graph_text(buff,30,124,nero);
         
-        LCD.fillRect(40, 150, 7, 36, bianco);
+        lcd.fillRect(40, 150, 7, 36, bianco);
         sprintf(buff," %d     ", StopRampPulses);
-        LCD.graph_text(buff,40,150,nero);
+        lcd.graph_text(buff,40,150,nero);
     };
 
 
@@ -571,15 +571,15 @@ void Page5Show() {
 void Page6Show(void) {
    
     if (update) {
-        LCD.clearScreen();
+        lcd.clearScreen();
         //pulsanti sottomenu per pagina 6
         ButtonDraw(6);
-        LCD.graph_text("se premi CONFERMA",100,109,nero);
-        LCD.graph_text("la posizione attuale della cupola",110,61,nero);
-        LCD.graph_text("verra' usata come quota di parcheggio",120,49,nero);
-        LCD.graph_text("cioe' la cupola tornera' in questa",130,58,nero);
-        LCD.graph_text("posizione ogni volta che premerai",140,61,nero);
-        LCD.graph_text("il tasto PARCHEGGIA",150,103,nero);
+        lcd.graph_text("se premi CONFERMA",100,109,nero);
+        lcd.graph_text("la posizione attuale della cupola",110,61,nero);
+        lcd.graph_text("verra' usata come quota di parcheggio",120,49,nero);
+        lcd.graph_text("cioe' la cupola tornera' in questa",130,58,nero);
+        lcd.graph_text("posizione ogni volta che premerai",140,61,nero);
+        lcd.graph_text("il tasto PARCHEGGIA",150,103,nero);
         update = 0;
     };
 
@@ -607,19 +607,19 @@ void Page7Show(void) {
     if (update) {
         //LCD.clearScreen();
         //pulsanti sottomenu per pagina 7
-        LCD.fillRect(50, 50, 140, 220, bianco);
-        LCD.fillRect(70, 240, 90, 30, nogrigio);    //cancella anche le righe grigine dei vecchi pulsanti
-        LCD.Rect(55,55,210,130,nero);
-        LCD.Rect(56,56,208,128,nero);
-        LCD.Rect(57,57,206,126,nero);
-        LCD.Rect(61,61,198,118,nero);
-        LCD.Rect(62,62,196,116,nero);
-        LCD.Rect(63,63,194,114,nero);
-        LCD.graph_text("Stai per PARCHEGGIARE",70,97,nero);
-        LCD.graph_text("la cupola nella posizione",80,85,nero);
-        LCD.graph_text("di riposo.",90,130,nero);
-        LCD.graph_text("Premi MUOVI per confermare",100,82,nero);
-        LCD.graph_text("ESCI per annullare",110,112,nero);
+        lcd.fillRect(50, 50, 140, 220, bianco);
+        lcd.fillRect(70, 240, 90, 30, nogrigio);    //cancella anche le righe grigine dei vecchi pulsanti
+        lcd.Rect(55,55,210,130,nero);
+        lcd.Rect(56,56,208,128,nero);
+        lcd.Rect(57,57,206,126,nero);
+        lcd.Rect(61,61,198,118,nero);
+        lcd.Rect(62,62,196,116,nero);
+        lcd.Rect(63,63,194,114,nero);
+        lcd.graph_text("Stai per PARCHEGGIARE",70,97,nero);
+        lcd.graph_text("la cupola nella posizione",80,85,nero);
+        lcd.graph_text("di riposo.",90,130,nero);
+        lcd.graph_text("Premi MUOVI per confermare",100,82,nero);
+        lcd.graph_text("ESCI per annullare",110,112,nero);
         ButtonDraw(7);
         update = 0;
     };
@@ -647,16 +647,16 @@ void Page7Show(void) {
  */
 void Page8Show() {
     if(update) {
-        LCD.clearScreen();
+        lcd.clearScreen();
         strcpy(Btn[19].testo, CalibratingSlope ? "FERMA" : "AVVIA");
 
         ButtonDraw(8);
 
-        LCD.graph_text("Il controller muovera' la cupola per 10 secondi",100,20,nero);
-        LCD.graph_text("nel senso di marcia che non fa andare in rollover",110,15,nero);
-        LCD.graph_text("l'encoder, poi stacca il segnale e misura da",120,20,nero);
-        LCD.graph_text("questo momento per quanti impulsi",130,20,nero);
-        LCD.graph_text("la cupola continua a muoversi",140,20,nero);
+        lcd.graph_text("Il controller muovera' la cupola per 10 secondi",100,20,nero);
+        lcd.graph_text("nel senso di marcia che non fa andare in rollover",110,15,nero);
+        lcd.graph_text("l'encoder, poi stacca il segnale e misura da",120,20,nero);
+        lcd.graph_text("questo momento per quanti impulsi",130,20,nero);
+        lcd.graph_text("la cupola continua a muoversi",140,20,nero);
     
         update = 0;
     }
@@ -731,7 +731,7 @@ void ButtonDraw(int page){
     for (n=inizio;n<=fine;n++) {
         B = &Btn[n];                //il warning è perchè manca la CONST ... fa lo stesso
         //if (B->colore != Cnullo){   //disegna il pulsante solo se esiste un colore
-            LCD.BtnDraw(B->Y, B->X, B->Y2, B->X2, B->testo);
+            lcd.BtnDraw(B->Y, B->X, B->Y2, B->X2, B->testo);
         //};
     };
     
@@ -741,7 +741,7 @@ void ButtonDraw(int page){
 // usato per diagnostica varia...
 void dummy(char * buff) {
         //sprintf(buff,"XP %d XM %d", Settings.TouchYoffset,Settings.TouchYmax);
-        LCD.graph_text(buff,140,112,nero);
+        lcd.graph_text(buff,140,112,nero);
         //sprintf(buff,"YP %d YM %d", Settings.TouchXoffset,Settings.TouchXmax);
         //LCD.graph_text(buff,150,112,nero);
 }
@@ -750,7 +750,7 @@ void DomeDrawUpdate(void){
    int angBegin,angEnd;
 
     //cerchio cupola
-    LCD.DisegnaCerchio();
+    lcd.DisegnaCerchio();
     //LCD.DrawCircle(120, 120, 90, 1);        
     //LCD.DrawCircle(120, 120, 91, 1);        
     //LCD.DrawCircle(120, 120, 89, 1);
@@ -762,10 +762,10 @@ void DomeDrawUpdate(void){
         angEnd = DomePosition - 340;
     else angEnd = DomePosition + 20;
     //sbianca l'arco corrispondente alla posizione del telescopio
-    LCD.DrawCircleArc(120, 120, 84, angBegin, angEnd, bianco);
-    LCD.DrawCircleArc(120, 120, 86, angBegin, angEnd, bianco);
+    lcd.DrawCircleArc(120, 120, 84, angBegin, angEnd, bianco);
+    lcd.DrawCircleArc(120, 120, 86, angBegin, angEnd, bianco);
     //LCD.DrawCircleArc(120, 120, 86, angBegin, angEnd, bianco);
-    LCD.DrawCircleArc(120, 120, 88, angBegin, angEnd, bianco);
+    lcd.DrawCircleArc(120, 120, 88, angBegin, angEnd, bianco);
     //LCD.DrawCircleArc(120, 120, 88, angBegin, angEnd, bianco);
     
 }
@@ -775,12 +775,12 @@ void TelescopeDrawUpdate(int posizione){
     static int PrevTelescope = 0;
     
     if (CurrentPage == 0){
-        LCD.DrawTelescope(PrevTelescope, bianco);
-        LCD.DrawTelescope(posizione, nero);
+        lcd.DrawTelescope(PrevTelescope, bianco);
+        lcd.DrawTelescope(posizione, nero);
         PrevTelescope = posizione;
-        LCD.fillRect(226,90,8,24,bianco);
+        lcd.fillRect(226,90,8,24,bianco);
         sprintf(buff,"%d\x7f", posizione);   // \x7f = 127 cioe' ° nella nostra tabella
-        LCD.graph_text(buff,226,90,nero);
+        lcd.graph_text(buff,226,90,nero);
     };
 }
 
@@ -792,12 +792,12 @@ void GuiEncLinkShow(int Ok){
         Ok = (int) LastState;
     if (CurrentPage == 0){
         if (Ok == 1){
-            LCD.fillRect(196, 238, 18, 80, bianco);
+            lcd.fillRect(196, 238, 18, 80, bianco);
             //277 e' il centro della finestrella
-            LCD.graph_text("encoder OK",201,247,nero);
+            lcd.graph_text("encoder OK",201,247,nero);
         } else {
-            LCD.fillRect(196, 238, 18, 80, nero);
-            LCD.graph_text("encoder DOWN",201,241,bianco);        
+            lcd.fillRect(196, 238, 18, 80, nero);
+            lcd.graph_text("encoder DOWN",201,241,bianco);        
         };
     };
     LastState = (uint8_t) Ok;
@@ -813,11 +813,11 @@ void GuiBrokerLinkShow(int Ok) {
 
     if (CurrentPage == 0){
         if (Ok == 1){
-            LCD.fillRect(221, 238, 18, 80, bianco);
-            LCD.graph_text("broker OK",226,250,nero);
+            lcd.fillRect(221, 238, 18, 80, bianco);
+            lcd.graph_text("broker OK",226,250,nero);
         } else {
-            LCD.fillRect(221, 238, 18, 80, nero);
-            LCD.graph_text("broker DOWN",226,245,bianco);        
+            lcd.fillRect(221, 238, 18, 80, nero);
+            lcd.graph_text("broker DOWN",226,245,bianco);        
         };
     };
 
@@ -842,8 +842,8 @@ void GuiPage0BtnRestore(void){
 //aggiorna il pulsante 0 di centra in FERMA
 void GuiPage0Btn0Stop(void) {
     B = &Btn[0];
-    LCD.fillRect(16,260,8,36,bianco);
-    LCD.graph_text("FERMA",16,263,1);
+    lcd.fillRect(16,260,8,36,bianco);
+    lcd.graph_text("FERMA",16,263,1);
     strcpy(B->testo,"FERMA");
 }
 //idem per il pulsante parcheggia
@@ -860,9 +860,9 @@ void LoadMeter(uint8_t valore){
     // 68 -4 di bordo = 64 pixel orizzontali
     valore = valore >> 2;   //265->64
     if (valore > preval)    //incrementa barra
-        LCD.fillRect(5,8+preval,7,valore-preval,1);  //disegna l'aumento della barra
+        lcd.fillRect(5,8+preval,7,valore-preval,1);  //disegna l'aumento della barra
     if (valore < preval)    //decrementa barra
-        LCD.fillRect(5,8+valore,7,preval-valore,0);  //sbianca la parte di cui abbiamo calato
+        lcd.fillRect(5,8+valore,7,preval-valore,0);  //sbianca la parte di cui abbiamo calato
     //se valore e preval sono == non fare nulla !
     preval = valore;
 }
@@ -875,9 +875,9 @@ void OvTrMeter(uint16_t valore){
     // 68 -4 di bordo = 64 pixel orizzontali
     valore = valore >> 9;   //36000->70
     if (valore > preval)    //incrementa barra
-        LCD.fillRect(5,159+preval,7,valore-preval,1);  //disegna l'aumento della barra
+        lcd.fillRect(5,159+preval,7,valore-preval,1);  //disegna l'aumento della barra
     if (valore < preval)    //decrementa barra
-        LCD.fillRect(5,159+valore,7,preval-valore,0);  //sbianca la parte di cui abbiamo calato
+        lcd.fillRect(5,159+valore,7,preval-valore,0);  //sbianca la parte di cui abbiamo calato
     //se valore e preval sono == non fare nulla !
     preval = valore;
 }
