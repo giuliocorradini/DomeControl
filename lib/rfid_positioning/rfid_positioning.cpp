@@ -2,6 +2,7 @@
 #include "MFRC522.h"
 #include <map>
 #include "tag_angles.h"
+#include <cstdint>
 
 using namespace std;
 
@@ -16,11 +17,11 @@ void RfidPositioning::init() {
     debug("[rfid] Firmware version: 0x%x\n", version);
 }
 
-unsigned int RfidPositioning::get_present_card_uid() {
+uint64_t RfidPositioning::get_present_card_uid() {
     unsigned int uid = 0;
 
     if(reader->PICC_IsNewCardPresent() && reader->PICC_ReadCardSerial()) {
-        uid = *((unsigned int *)reader->uid.uidByte);
+        uid = *((uint64_t *)reader->uid.uidByte);
     }
 
     return uid;

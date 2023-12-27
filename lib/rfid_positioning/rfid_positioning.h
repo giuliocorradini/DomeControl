@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include "MFRC522.h"
 
 class RfidPositioning {
@@ -18,7 +19,7 @@ class RfidPositioning {
          * 
          * @return the UID of a card is present, 0 otherwise.
         */
-        unsigned int get_present_card_uid();
+        uint64_t get_present_card_uid();
 
         /**
          * Returns the index of a card, if present. The index corresponds to a given angle according to the

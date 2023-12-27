@@ -19,23 +19,23 @@ Thread remote_conn_thread;
 
 int main() {
 
-    GuiInit();
+    //GuiInit();
     IoInit();
-    TouchInit();    //touchscreen
-    MqttInit();
-    DomeInit();     //cupola
+    //TouchInit();    //touchscreen
+    //MqttInit();
+    //DomeInit();     //cupola
 
     /* setup remote connections (MQTT) */
-    remote_conn_thread.start(callback(
+    /*remote_conn_thread.start(callback(
         Remote::mqtt_thread
-    ));
+    ));*/
 
     tick.attach(&timeout, 10ms);
    
     while(1) {
-        GuiMain();
+        //GuiMain();
         IoMain();
-        DomeMain();
+        //DomeMain();
         led = !led;
         //attende lo scadere dei 10msec
         while (FlagTick == 0);
